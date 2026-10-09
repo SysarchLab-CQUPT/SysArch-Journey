@@ -40,7 +40,6 @@ Windows 用 `.\scripts\build.ps1`、`.\scripts\clean.ps1`，参数相同。
 | ③ 确认 | 任务发布者 | 回复 `/confirm`，你自动成为 Assignee |
 | ④ 交付 | 你 | 完成后评论 `/complete` 发起复核 |
 | ⑤ 复核 | 其他成员 | 3 位不同成员分别评论 `LGTM`，通过后 Issue 自动关闭 |
-| ⑥ 登记 | 你 | 用"贡献登记"模板登记工时与交付物 |
 
 几个要知道的规则：
 
