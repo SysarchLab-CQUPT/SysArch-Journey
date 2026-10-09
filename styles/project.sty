@@ -1,0 +1,140 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{styles/project}[2026/10/08 Textbook layout for full-stack computer systems]
+
+% ============ 页面与颜色 ============
+\RequirePackage{geometry}
+\geometry{a4paper,top=\PageMarginTop,bottom=\PageMarginBottom,left=\PageMarginLeft,right=\PageMarginRight,headheight=16pt,headsep=8mm,footskip=12mm}
+\RequirePackage{xcolor}
+\definecolor{Brand}{HTML}{\BrandColorHTML}
+\definecolor{Accent}{HTML}{\AccentColorHTML}
+\definecolor{Muted}{HTML}{\MutedColorHTML}
+\definecolor{Rule}{HTML}{\RuleColorHTML}
+\definecolor{Panel}{HTML}{\PanelColorHTML}
+\definecolor{CodeBackground}{HTML}{\CodeBackgroundColorHTML}
+
+% ============ 图形、表格与图题 ============
+\RequirePackage{graphicx}
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,backgrounds,patterns}
+\RequirePackage{array,tabularx,longtable,booktabs,multirow}
+\RequirePackage{enumitem}
+\RequirePackage{float}
+\RequirePackage{caption}
+\RequirePackage{needspace}
+
+% ============ 数学与定理环境 ============
+\RequirePackage{amsmath,amssymb,amsthm}
+\theoremstyle{definition}
+\newtheorem{definition}{定义}[chapter]
+\newtheorem{example}{例}[chapter]
+\theoremstyle{plain}
+\newtheorem{theorem}{定理}[chapter]
+
+% ============ 代码清单 ============
+% \CodeListing{路径}{图题}
+% 路径写"相对当前文件"的写法：
+%   本章的代码      \CodeListing{code/pipeline.v}{五级流水线实现}
+%   全书共用的代码  \CodeListing{assets/code/hello.c}{示例}
+% subfiles 与 import 会按文件所在目录解析，全书编译和单章预览都成立。
+\RequirePackage{listings}
+\lstdefinestyle{book}{
+  backgroundcolor=\color{CodeBackground},
+  basicstyle=\ttfamily\CodeFontSize,
+  keywordstyle=\color{Accent}\bfseries,
+  commentstyle=\color{Muted},
+  stringstyle=\color{Brand},
+  numbers=left, numberstyle=\tiny\color{Muted}, numbersep=8pt,
+  frame=single, rulecolor=\color{Rule}, framexleftmargin=1.2em,
+  breaklines=true, breakatwhitespace=false,
+  showstringspaces=false, tabsize=4, columns=fullflexible, keepspaces=true,
+  captionpos=b, abovecaptionskip=6pt,
+}
+\lstset{style=book}
+\renewcommand{\lstlistingname}{代码}
+\newcommand{\CodeListing}[3][C]{%
+  \lstinputlisting[language=#1,caption={#3}]{#2}%
+}
+
+% ============ 页眉页脚 ============
+\RequirePackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\small\color{Muted}\leftmark}
+\fancyfoot[LE,RO]{\small\thepage}
+\renewcommand{\headrulewidth}{0.35pt}
+\renewcommand{\headrule}{{\color{Rule}\hrule width\headwidth height\headrulewidth\vskip-\headrulewidth}}
+\renewcommand{\footrulewidth}{0pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\small\thepage}\renewcommand{\headrulewidth}{0pt}}
+
+% ============ 超链接与交叉引用 ============
+\RequirePackage[numbers,sort&compress]{natbib}
+\RequirePackage{hyperref}
+\hypersetup{
+  unicode=true, colorlinks=true,
+  linkcolor=Brand, urlcolor=Accent, citecolor=Accent,
+  bookmarksnumbered=true,
+  pdftitle={\DocumentTitle}, pdfsubject={\DocumentSubject}, pdfauthor={\DocumentAuthor},
+}
+\urlstyle{same}
+\RequirePackage{cleveref}
+\crefname{chapter}{第}{第}
+\creflabelformat{chapter}{#2#1#3章}
+\crefname{section}{第}{第}
+\creflabelformat{section}{#2#1#3节}
+\crefname{figure}{图}{图}
+\crefname{table}{表}{表}
+\crefname{equation}{式}{式}
+% 注意用类型名 listing，不是计数器名 lstlisting：cleveref 的 listings 支持
+% 里有一句 \crefalias{lstlisting}{listing}，写成 lstlisting 不会生效。
+\crefname{listing}{代码}{代码}
+
+% ============ 版式微调 ============
+\linespread{\BodyLineSpread}
+\raggedbottom
+\widowpenalty=1000
+\clubpenalty=1000
+\displaywidowpenalty=1000
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0.28em}
+\setlength{\emergencystretch}{2em}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.38}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+\setlist{nosep,topsep=5pt,itemsep=3pt,leftmargin=2em}
+\captionsetup{font=small,labelfont=bf,labelsep=quad,skip=6pt}
+\setcounter{tocdepth}{2}
+
+% ============ 章节样式 ============
+\ctexset{
+  chapter={
+    format=\centering\Large\bfseries\sffamily\color{Brand},
+    name={第,章},
+    number=\chinese{chapter},
+    aftername=\hspace{.6em},
+    beforeskip=2.4\baselineskip,
+    afterskip=1.1\baselineskip,
+    % 章标题下加一条装饰线；同时标记"这是章首页"，供页边装饰使用。
+    aftertitle={\par\vspace{.7em}{\color{Accent}\rule{34mm}{1.2pt}}\global\BookChapterPagetrue},
+  },
+  section={format=\large\bfseries\sffamily\color{Brand}, beforeskip=1.1\baselineskip, afterskip=.45\baselineskip},
+  subsection={format=\normalsize\bfseries\sffamily, beforeskip=.85\baselineskip, afterskip=.3\baselineskip},
+  subsubsection={format=\normalsize\bfseries, beforeskip=.5\baselineskip, afterskip=.2\baselineskip},
+}
+
+% ============ 写作辅助宏 ============
+% 要点框：\KeyPoint{标题}{说明}
+\newcommand{\KeyPoint}[2]{%
+  \par\addvspace{.6\baselineskip}\Needspace{3\baselineskip}%
+  \noindent{\bfseries\color{Accent}#1}\par\nopagebreak
+  {\small\noindent #2\par}\addvspace{.3\baselineskip}%
+}
+\newcommand{\ConfigValue}[1]{{\color{Brand}#1}}
+
+% ============ 参考文献开关（由 config/manifest.tex 设置） ============
+\newif\ifHasBibliography
+\HasBibliographyfalse
+\providecommand{\BibliographyResources}{}
+
+% 页边与封面装饰（定义 \DrawCover 等，并在 shipout 时挂载）
+\input{styles/background}

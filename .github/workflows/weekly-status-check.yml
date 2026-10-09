@@ -1,0 +1,26 @@
+name: Weekly Status Checks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'weekly-status/**'
+      - 'chapters/**'
+      - '.github/ISSUE_TEMPLATE/task_request.yml'
+      - '.github/workflows/weekly-status*.yml'
+  pull_request:
+    paths:
+      - 'weekly-status/**'
+      - 'chapters/**'
+      - '.github/ISSUE_TEMPLATE/task_request.yml'
+      - '.github/workflows/weekly-status*.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: python3 -B -m unittest discover -s weekly-status/scripts -p 'test_*.py'

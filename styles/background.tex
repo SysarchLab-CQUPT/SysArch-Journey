@@ -1,0 +1,116 @@
+% 封面、章首页与正文页的页边装饰。
+% 全部由 TikZ 直接绘制，不引入图片文件；强度在 config/appearance.tex 里控制，
+% 把对应强度设为 0 就等于关闭该处的装饰。
+%
+% 实现说明：装饰用 remember picture 定位到页面四角，因此需要编译两遍才能落位
+% （scripts/build.sh 用的 latexmk 会自动多跑几遍）。编辑器若只跑一遍 xelatex，
+% 装饰可能暂时错位，再保存一次即可。
+%
+% 装饰坐标以"外侧边缘"为原点：x 向内为正，y 由下往上。
+% 奇数页外侧在右、偶数页外侧在左，靠翻转坐标系实现镜像——装订成书后装饰始终在外侧。
+\definecolor{CoverPaper}{HTML}{\CoverPaperColorHTML}
+\definecolor{CoverBand}{HTML}{\CoverBandColorHTML}
+\definecolor{CoverBandAccent}{HTML}{\CoverBandAccentHTML}
+\definecolor{TechLine}{HTML}{\TechLineColorHTML}
+
+% ============================================================ 封面装饰
+% 整版浅色底 + 顶部与底部的细色条 + 右上角工程网格 + 左下角电路走线。
+\newcommand{\DrawCover}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \begin{scope}[shift={(current page.south west)},x=1mm,y=1mm]
+      \fill[CoverPaper] (0,0) rectangle (210,297);
+      % 顶部与底部的细色条
+      \fill[CoverBand] (0,293.4) rectangle (210,297);
+      \fill[CoverBandAccent] (0,291.9) rectangle (64,293.4);
+      \fill[CoverBand] (0,0) rectangle (210,3);
+      \fill[CoverBandAccent] (0,3) rectangle (74,4.2);
+      % 右上角的工程网格
+      \begin{scope}
+        \clip (150,216) rectangle (210,291.9);
+        \draw[TechLine!\CoverPatternTint,line width=.2pt,step=5mm]
+          (150,216) grid (210,291.9);
+      \end{scope}
+      % 左下角的电路走线
+      \draw[TechLine!\CoverPatternTint,line width=.6pt]
+        (10,26)--(30,26)--(38,34)--(58,34)
+        (10,18)--(24,18)--(32,26)--(46,26);
+      \foreach \x/\y in {10/26,10/18,58/34,46/26}{%
+        \fill[TechLine!\CoverPatternTint] (\x,\y) circle (.7);
+      }
+    \end{scope}
+  \end{tikzpicture}%
+}
+
+% ==================================================== 底部电路走线
+% 全书唯一的页边装饰：一条从外侧页边折进来的 PCB 走线，安静地躺在页脚下方，
+% 看上去像电路从页面边缘继续延伸出去。强度由 \ChapterBottomTint / \BodyBottomTint 控制。
+% 坐标为"外侧边缘"起点：x 向内、y 由下往上（页脚页码约在 y=13mm，所以走线压在下沿）。
+% 只折两次：从外侧页边先进来，斜下一段，再平着伸向内页。
+\newcommand{\BottomCircuit}[1]{%
+  \draw[#1,line width=.95pt]
+    (0,13)--(11,13)--(21,5.8)--(57,5.8);
+  \foreach \x/\y in {11/13,21/5.8,57/5.8}{%
+    \fill[#1] (\x,\y) circle (.78);
+  }
+}
+
+% ======================================================== 章首页装饰件
+\newcommand{\ChapterEdgeOrnament}{%
+  % 顶部通栏细带
+  \fill[CoverBand] (0,292) rectangle (210,297);
+  \fill[CoverBandAccent] (0,290.4) rectangle (64,292);
+  % 外侧上角的工程网格
+  \begin{scope}
+    \clip (0,238) rectangle (26,291);
+    \draw[TechLine!\ChapterGridTint,line width=.2pt,step=5mm] (0,238) grid (26,291);
+  \end{scope}
+  % 页脚下方的电路走线
+  \BottomCircuit{TechLine!\ChapterBottomTint}%
+}
+
+% ======================================================== 正文页装饰件
+% 正文页只保留底部那条很淡的电路走线。
+\newcommand{\BodyEdgeOrnament}{%
+  \BottomCircuit{TechLine!\BodyBottomTint}%
+}
+
+% ============================================ 按页码奇偶选择镜像方向
+\newcommand{\DrawChapterEdge}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \ifodd\value{page}%
+      \begin{scope}[shift={(current page.south east)},x=-1mm,y=1mm]\ChapterEdgeOrnament\end{scope}%
+    \else
+      \begin{scope}[shift={(current page.south west)},x=1mm,y=1mm]\ChapterEdgeOrnament\end{scope}%
+    \fi
+  \end{tikzpicture}%
+}
+\newcommand{\DrawBodyEdge}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \ifodd\value{page}%
+      \begin{scope}[shift={(current page.south east)},x=-1mm,y=1mm]\BodyEdgeOrnament\end{scope}%
+    \else
+      \begin{scope}[shift={(current page.south west)},x=1mm,y=1mm]\BodyEdgeOrnament\end{scope}%
+    \fi
+  \end{tikzpicture}%
+}
+
+% ====================================================== 装饰的挂载与开关
+\newif\ifBookCoverPage
+\BookCoverPagetrue
+\newif\ifBookChapterPage
+\BookChapterPagefalse
+
+\AddToHook{shipout/background}{%
+  \ifBookCoverPage
+    \DrawCover
+    \global\BookCoverPagefalse
+    \global\BookChapterPagefalse
+  \else
+    \ifBookChapterPage
+      \DrawChapterEdge
+      \global\BookChapterPagefalse
+    \else
+      \DrawBodyEdge
+    \fi
+  \fi
+}

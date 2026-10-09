@@ -1,0 +1,11 @@
+% 中文字体策略：优先使用项目内本地字体副本（可选），否则回退到 TeX Live 自带的 Fandol。
+% 本地字体副本放在仓库根目录的 fonts/ 下；该目录不入库，只影响本机编译。
+\IfFileExists{fonts/simsun.ttc}{%
+  \setCJKmainfont[Path=fonts/,FontIndex=0,AutoFakeBold=2.5,ItalicFont=simkai.ttf]{simsun.ttc}
+  \setCJKsansfont[Path=fonts/]{simhei.ttf}
+  \setCJKmonofont[Path=fonts/]{simfang.ttf}
+}{%
+  \setCJKmainfont[BoldFont=FandolSong-Bold.otf,ItalicFont=FandolKai-Regular.otf]{FandolSong-Regular.otf}
+  \setCJKsansfont[BoldFont=FandolHei-Bold.otf]{FandolHei-Regular.otf}
+  \setCJKmonofont{FandolFang-Regular.otf}
+}

@@ -1,0 +1,40 @@
+\section{章、节、小节的层级}
+\label{sec:00-structure}
+
+书的结构只有三层：\textbf{章}（\verb|\chapter|）→ \textbf{节}（\verb|\section|）→
+\textbf{小节}（\verb|\subsection|）。章标题写在每章的 \texttt{chapter.tex} 里，
+节和小节写在各自的小节文件里。编号和目录都是自动生成的，不用手写"第一节""1.1"这种编号。
+
+写法：
+
+\begin{lstlisting}[language=TeX]
+\section{章、节、小节的层级}
+\label{sec:00-structure}          % 标签供交叉引用使用，见第 0.8 节
+
+\subsection{这是小节（二级标题）}
+\label{sec:00-structure-sub}
+
+\subsubsection{这是更小的一级（三级标题）}
+\end{lstlisting}
+
+效果：本节标题和下面这两级，就是你正在看的效果。
+
+\subsection{这是小节（二级标题）}
+\label{sec:00-structure-sub}
+
+小节下面是正文段落。正文照常用中文写就行，段首缩进、行距、中西文间距都是自动排的。
+
+\subsubsection{这是更小的一级（三级标题）}
+
+一般不建议再往下分。层级太深，读者反而看不清结构。
+
+\KeyPoint{关于 \texttt{\textbackslash label} 的命名}{约定是"类型:章-节-序号"，
+例如 \texttt{sec:04-processor-core-02}、\texttt{fig:04-pipeline-stages}、
+\texttt{tab:00-comparison}。标签名里不要用中文，也不要用空格。}
+
+\begin{lstlisting}[language=TeX]
+\subsection{这是小节（二级标题）}
+这是正文。段落之间空一行，LaTeX 会自动缩进。
+
+不要在源码里手动加空格或空行来"凑"排版效果——那是自动排的。
+\end{lstlisting}

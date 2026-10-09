@@ -1,0 +1,58 @@
+\section{提示框与强调}
+\label{sec:00-boxes}
+
+\subsection{要点框}
+
+需要把一小段话单独拎出来提醒读者时，用 \verb|\KeyPoint{标题}{说明}|。
+它不加框线，靠颜色和字号区分，不会打断阅读节奏。
+
+写法：
+
+\begin{lstlisting}[language=TeX]
+\KeyPoint{安全边界}{没有把握的结论不要写成事实，
+用"待补充"占位并注明来源，等实验数据出来再补。}
+\end{lstlisting}
+
+效果：
+
+\KeyPoint{安全边界}{没有把握的结论不要写成事实，用"待补充"占位并注明来源，
+等实验数据出来再补。}
+
+常见用法有两种：一节开头用它点出"这一节解决什么问题"，或者一段关键结论后面
+用它补一句提醒。\textbf{一页里最多一两个}，多了就不"要点"了。
+
+\subsection{其他强调手段}
+
+\begin{description}
+  \item[加粗] \verb|\textbf{...}|，用于术语第一次出现和关键结论
+  \item[强调色] \verb|\textcolor{Accent}{...}|，用于需要视觉引导的关键词
+  \item[缩小字号] \verb|{\small ...}|，用于附注性的补充说明
+  \item[引用块] \texttt{quote} 环境，用于成段引文或需要独立成段的话
+\end{description}
+
+\subsection{一节的实验怎么排}
+
+仓库目前没有专门的"实验"环境，约定用固定四段式：目标、环境、步骤、验收。
+步骤用有序列表，验收用可勾选清单：
+
+\begin{lstlisting}[language=TeX]
+\textbf{实验目标}\quad 在 FPGA 上点亮流水线各级的指示灯。
+
+\textbf{实验环境}\quad Vivado 2024.1；开发板型号见 config/hardware.tex。
+
+\textbf{实验步骤}
+\begin{enumerate}
+  \item 综合并生成比特流；
+  \item 下载到开发板；
+  \item 观察指示灯的流水效果。
+\end{enumerate}
+
+\textbf{验收清单}
+\begin{itemize}
+  \item[$\square$] 综合没有关键警告
+  \item[$\boxtimes$] 指示灯按预期流水点亮
+\end{itemize}
+\end{lstlisting}
+
+如果你觉得这套四段式应该固化成统一环境，\textbf{在 Issue 里提出来}，
+由主编加到 \texttt{styles/} 里，不要自己在章节里拼一个。

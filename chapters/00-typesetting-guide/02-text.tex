@@ -1,0 +1,35 @@
+\section{文字格式}
+\label{sec:00-text}
+
+常用的文字格式都在下面这张对照里，左边是效果，右边是写法。
+
+\begin{description}
+  \item[加粗] \verb|\textbf{加粗}| → \textbf{加粗}；正文强调用加粗，不要用下划线
+  \item[斜体] \verb|\emph{斜体}| 或 \verb|\textit{斜体}| → \emph{斜体}
+  \item[等宽] \verb|\texttt{main.tex}| → \texttt{main.tex}
+  \item[下划线] \verb|\underline{下划线}| → \underline{下划线}（慎用，容易和链接混淆）
+  \item[彩色] \verb|\textcolor{Accent}{强调色}| → \textcolor{Accent}{强调色}
+  \item[大一号/小一号] \verb|\large 大一点|、\verb|\small 小一点| →
+    {\large 大一点}、{\small 小一点}
+  \item[脚注] \verb|\footnote{补充说明}| → 见页脚\footnote{这就是脚注的样子，
+    适合放不打断正文的补充说明。}
+  \item[行内代码] \texttt{\textbackslash verb|make -j8|} → \verb|make -j8|
+  \item[链接] \verb|\url{https://example.com}| → \url{https://example.com}
+  \item[带文字的链接] \verb|\href{https://example.com}{点这里}| →
+    \href{https://example.com}{点这里}
+\end{description}
+
+中文标点直接用键盘输入的全角符号就行：，。；：？！""''（）《》——……
+中西文之间的空隙由排版引擎自动处理，\textbf{不要手动敲空格}。
+
+\begin{lstlisting}[language=TeX]
+这段话里有\textbf{加粗}、\emph{斜体}和\texttt{等宽}，
+还有一条脚注\footnote{脚注内容}。
+\end{lstlisting}
+
+效果：
+
+这段话里有\textbf{加粗}、\emph{斜体}和\texttt{等宽}，还有一条脚注\footnote{脚注内容}。
+
+\KeyPoint{写作建议}{一段话只讲一件事，超过五行就拆成两段。技术名词第一次出现时
+给全称和缩写，例如"指令集架构（Instruction Set Architecture, ISA）"。}

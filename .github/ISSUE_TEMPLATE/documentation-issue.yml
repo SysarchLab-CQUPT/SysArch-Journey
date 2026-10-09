@@ -1,0 +1,52 @@
+name: 📚 报告文档问题
+description: 报告教材中的错误、过时内容、链接失效或表述不清
+title: "[文档问题] "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 使用说明
+
+        报告书稿中的错误或表述问题。请尽量给出准确位置（文件路径或编译后的页码），
+        便于定位。如果已经有修改建议，请一并填写；提交前先搜索已有 Issue，避免重复。
+
+  - type: input
+    id: location
+    attributes:
+      label: 文档位置
+      description: 源文件路径，或编译后 PDF 的页码与章节号。
+      placeholder: 例如：chapters/04-processor-core/02-pipeline.tex，PDF 第 12 页
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: 问题类型
+      options:
+        - 技术内容错误
+        - 表述不清或前后矛盾
+        - 错别字或标点
+        - 图表或公式问题
+        - 引用与链接失效
+        - 排版问题
+        - 其他
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 请描述你看到的内容与问题所在。
+      placeholder: 请描述问题……
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 建议修改
+      description: 如果知道怎样改，请写在这里；可留空。
+      placeholder: 建议修改为……

@@ -1,0 +1,11 @@
+\chapter{参考文献}
+\label{ch:references}
+
+% 各章的 refs.bib 由 scripts/update-manifest.py 汇总到这里。
+\ifHasBibliography
+  \renewcommand{\bibsection}{}% 标题已由上面的 \chapter 生成，避免重复
+  \bibliographystyle{gbt7714-numerical}
+  \bibliography{\BibliographyResources}
+\else
+  \noindent 尚未登记参考文献。请在所属章节的 \texttt{refs.bib} 中添加条目并引用。
+\fi

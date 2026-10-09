@@ -1,0 +1,41 @@
+% 封面：整页浅色 + 点阵底纹（由 styles/background.tex 绘制）。
+% 版式自上而下：芯片徽标 — 工作稿 — 短横线 — 书名 — 副标题 — 主线一行 — 页脚。
+\begin{titlepage}
+\thispagestyle{empty}
+\centering
+
+\vspace*{20mm}
+% 芯片徽标：封装外框 + 本体 + 两侧引脚
+\begin{tikzpicture}[x=1mm,y=1mm]
+  \draw[Accent,line width=.9pt,rounded corners=1.5mm] (-11,-11) rectangle (11,11);
+  \draw[Accent!55,line width=.5pt] (-7.5,-7.5) rectangle (7.5,7.5);
+  \foreach \y in {-6.5,-2.2,2.2,6.5}{%
+    \draw[Accent,line width=.7pt] (-11,\y)--(-15.5,\y);
+    \draw[Accent,line width=.7pt] (11,\y)--(15.5,\y);
+  }
+\end{tikzpicture}
+
+\vspace{18mm}
+% 版本标记：描边圆角标签，代替原来悬空的短横杠。
+\begin{tikzpicture}[baseline={(badge.base)}]
+  \node[draw=Accent!\CoverBadgeBorderTint,line width=.6pt,
+        rounded corners=\CoverBadgeCorner,
+        inner xsep=\CoverBadgePadX,inner ysep=\CoverBadgePadY]
+    (badge) {\normalfont\small\sffamily\color{Muted}\CoverBadge};
+\end{tikzpicture}\par
+\vspace{14mm}
+{\fontsize{\CoverTitleFontSize}{\CoverTitleLeading}\selectfont
+ \bfseries\sffamily\color{Brand}\BookTitle\par}
+\vspace{7mm}
+{\fontsize{\CoverSubtitleFontSize}{22pt}\selectfont
+ \color{Accent}\BookSubtitle\par}
+\vspace{18mm}
+{\small\sffamily\color{Muted}\BookMainLine\par}
+
+\vfill
+{\color{Rule}\rule{76mm}{.6pt}\par}
+\vspace{4mm}
+{\normalsize\sffamily\color{Brand}\CoverFooterLine\par}
+\vspace{18mm}
+
+\end{titlepage}

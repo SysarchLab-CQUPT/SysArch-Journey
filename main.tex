@@ -1,0 +1,43 @@
+% !TeX encoding = UTF-8
+% !TeX program = xelatex
+%
+% 全书装配入口。本文件只负责“装配”，不写正文。
+%   - 各章正文：chapters/NN-名称/
+%   - 前置与后置：frontmatter/、backmatter/（全书级片段）
+%   - 章的清单：config/manifest.tex（由脚本生成，勿手改）
+%
+% 说明：chapters/ 下每一章都是自包含的 subfile，可以单独编译预览；
+% frontmatter/、backmatter/ 是全书级片段，直接读入本文件。
+%
+% 唯一维护者：主编。其他作者不要修改本文件。
+
+\documentclass[UTF8,zihao=-4,fontset=none,a4paper,openany]{ctexbook}
+
+
+\input{config/config}
+\input{styles/fonts}
+
+\usepackage{styles/project}
+\usepackage{subfiles}
+
+\begin{document}
+
+% ---------------- 前置部分（罗马页码，不编号） ----------------
+\frontmatter
+\input{styles/cover}
+\input{frontmatter/preface}
+{\small\linespread{1.08}\selectfont\setlength{\parskip}{0pt}\tableofcontents}
+
+% ---------------- 正文（顺序由清单决定） ----------------
+\mainmatter
+\input{config/manifest}
+
+% ---------------- 附录（编号 A、B……） ----------------
+\appendix
+\input{backmatter/appendix}
+
+% ---------------- 参考文献（不编号） ----------------
+\backmatter
+\input{backmatter/references}
+
+\end{document}

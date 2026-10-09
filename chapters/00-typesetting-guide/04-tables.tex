@@ -1,0 +1,127 @@
+\section{表格}
+\label{sec:00-tables}
+
+\subsection{三线表（最常用）}
+
+教材里的表格一律用三线表：上下各一条粗线，表头下面一条细线，中间不画竖线。
+
+写法：
+
+\begin{lstlisting}[language=TeX]
+\begin{table}[htbp]
+\centering
+\caption{三种处理器对比}
+\label{tab:00-compare}
+\begin{tabular}{@{}lll@{}}
+\toprule
+项目 & 单周期 & 五级流水线 \\
+\midrule
+指令吞吐 & 1 条/周期 & 最高 1 条/周期（重叠执行）\\
+关键路径 & 长，主频低 & 短，主频高 \\
+实现难度 & 低 & 需要处理冒险 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\end{lstlisting}
+
+效果：
+
+\begin{table}[htbp]
+\centering
+\caption{三种处理器对比}
+\label{tab:00-compare}
+\begin{tabular}{@{}lll@{}}
+\toprule
+项目 & 单周期 & 五级流水线 \\
+\midrule
+指令吞吐 & 1 条/周期 & 最高 1 条/周期（重叠执行）\\
+关键路径 & 长，主频低 & 短，主频高 \\
+实现难度 & 低 & 需要处理冒险 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{自动换行的宽表}
+
+单元格文字长、又要占满版心时，用 \texttt{tabularx} 配 \texttt{Y} 列（自动换行、
+左对齐）或 \texttt{P\{宽度\}} 列：
+
+\begin{lstlisting}[language=TeX]
+\begin{table}[htbp]
+\centering
+\caption{接口信号说明}
+\label{tab:00-signals}
+\begin{tabularx}{\linewidth}{@{}P{22mm}Y@{}}
+\toprule
+信号 & 说明 \\
+\midrule
+\texttt{clk} & 时钟，上升沿有效；所有时序逻辑都在它的上升沿更新 \\
+\texttt{rst\_n} & 异步复位，低电平有效；复位后取指地址回到启动地址 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+\end{lstlisting}
+
+效果：
+
+\begin{table}[htbp]
+\centering
+\caption{接口信号说明}
+\label{tab:00-signals}
+\begin{tabularx}{\linewidth}{@{}P{22mm}Y@{}}
+\toprule
+信号 & 说明 \\
+\midrule
+\texttt{clk} & 时钟，上升沿有效；所有时序逻辑都在它的上升沿更新 \\
+\texttt{rst\_n} & 异步复位，低电平有效；复位后取指地址回到启动地址 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{合并单元格与对齐}
+
+\begin{lstlisting}[language=TeX]
+\begin{table}[htbp]
+\centering
+\caption{合并表头与按列对齐}
+\label{tab:00-merged}
+\begin{tabular}{@{}llrr@{}}
+\toprule
+批次 & 类型 & \multicolumn{2}{c}{耗时 / ns} \\
+\cmidrule(lr){3-4}
+     &      & 典型 & 最差 \\
+\midrule
+\multirow{2}{*}{A} & 译码 & 1.2 & 1.5 \\
+                   & 执行 & 2.0 & 2.8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\end{lstlisting}
+
+效果（数字列用 \texttt{r} 右对齐，读起来整齐）：
+
+\begin{table}[htbp]
+\centering
+\caption{合并表头与按列对齐}
+\label{tab:00-merged}
+\begin{tabular}{@{}llrr@{}}
+\toprule
+批次 & 类型 & \multicolumn{2}{c}{耗时 / ns} \\
+\cmidrule(lr){3-4}
+     &      & 典型 & 最差 \\
+\midrule
+\multirow{2}{*}{A} & 译码 & 1.2 & 1.5 \\
+                   & 执行 & 2.0 & 2.8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{跨页长表格}
+
+表格超过一页时用 \texttt{longtable}，它会自动在断页处重复表头。写法把
+\texttt{table} 换成 \texttt{longtable} 即可，标题放在第一行用
+\verb|\caption{...}\\| 给出。本示例只有三行，就不强行断页了。
+
+\KeyPoint{表格的规矩}{表题在\textbf{表的上方}，图题在\textbf{图的下方}；
+表格里的数字按小数点对齐（用右对齐列）；单位写在表头里（如"耗时 / ns"），
+不要每个格子重复写。}

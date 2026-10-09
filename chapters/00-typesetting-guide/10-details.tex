@@ -1,0 +1,149 @@
+\section{排版细节}
+\label{sec:00-details}
+
+\subsection{字号}
+
+正文有统一的基础字号。局部想变小或变大，要在花括号里改，让作用范围只限这一段。
+
+写法：
+
+\begin{lstlisting}[language=TeX]
+{\small 这一段用 small 字号排版，适合表格里的补充说明。}
+
+{\footnotesize 这一段用 footnotesize 字号排版，再小就该放进脚注了。}
+\end{lstlisting}
+
+效果：
+
+{\small 这一段用 small 字号排版，适合表格里的补充说明。}
+
+{\footnotesize 这一段用 footnotesize 字号排版，再小就该放进脚注了。}
+
+\textbf{忘了加花括号}，后面所有正文都会跟着变小。
+
+\subsection{颜色}
+
+颜色统一取自 \texttt{config/appearance.tex}，\textbf{不要在正文里写十六进制色值}：
+
+\begin{itemize}
+  \item \textcolor{Accent}{强调色 Accent}：\verb|\textcolor{Accent}{...}|
+  \item \textcolor{Muted}{次要信息 Muted}：\verb|\textcolor{Muted}{...}|
+  \item \ConfigValue{品牌色 Brand}：\verb|\ConfigValue{...}|
+\end{itemize}
+
+\subsection{控制分页}
+
+各章默认另起一页，节与节接着排。需要强制另起一页时用 \verb|\clearpage|；
+不希望小标题孤零零留在页尾、正文翻到下一页时，在标题前加
+\verb|\Needspace{4\baselineskip}|。
+
+\subsection{并排两块内容}
+
+不限于图，任何两块文字都能并排：
+
+\begin{lstlisting}[language=TeX]
+\noindent
+\begin{minipage}[t]{.47\linewidth}
+{\bfseries 这么写的好处}\par\vspace{2pt}
+{\small 结构简单、容易验证；同一条主线逐年加码，学生的代码可以一直用下去。}
+\end{minipage}\hfill
+\begin{minipage}[t]{.47\linewidth}
+{\bfseries 要付出的代价}\par\vspace{2pt}
+{\small 覆盖面大、需要多人分工；每一层都得有能跑通的实验，否则容易停在概念上。}
+\end{minipage}
+\end{lstlisting}
+
+效果：
+
+\noindent
+\begin{minipage}[t]{.47\linewidth}
+{\bfseries 这么写的好处}\par\vspace{2pt}
+{\small 结构简单、容易验证；同一条主线逐年加码，学生的代码可以一直用下去。}
+\end{minipage}\hfill
+\begin{minipage}[t]{.47\linewidth}
+{\bfseries 要付出的代价}\par\vspace{2pt}
+{\small 覆盖面大、需要多人分工；每一层都得有能跑通的实验，否则容易停在概念上。}
+\end{minipage}
+
+\subsection{浮动位置参数}
+
+\texttt{[htbp]} 是给排版程序的位置建议：\texttt{h} 当前位置、\texttt{t} 页顶、
+\texttt{b} 页底、\texttt{p} 单独占一页。一般写 \verb|[htbp]| 就够了。
+\textbf{不要用 \texttt{[H]}}——那是强制钉在当前位置，容易在页面底部留出大片空白。
+
+\subsection{语法速查表}
+
+\cref{tab:00-cheatsheet} 把全章用到的语法汇总在一处。它同时是 \texttt{longtable}
+的实例：表格超过一页会自动断开，并在新页重复表头。
+
+\begin{longtable}{@{}p{40mm}p{94mm}@{}}
+\caption{常用语法速查表（长表自动跨页）}\label{tab:00-cheatsheet}\\
+\toprule
+想写什么 & 语法 \\
+\midrule
+\endfirsthead
+\multicolumn{2}{@{}l}{{\small\itshape 续表}}\\
+\toprule
+想写什么 & 语法 \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+一级标题 & \texttt{\textbackslash section\{标题\}}，一节一个文件 \\
+二级标题 & \texttt{\textbackslash subsection\{标题\}} \\
+三级标题 & \texttt{\textbackslash subsubsection\{标题\}} \\
+加粗 / 斜体 & \texttt{\textbackslash textbf\{...\}}、\texttt{\textbackslash emph\{...\}} \\
+等宽字体 & \texttt{\textbackslash texttt\{...\}}，用于文件名、命令、类型名 \\
+颜色 & \texttt{\textbackslash textcolor\{Accent\}\{...\}}，或 \texttt{\textbackslash ConfigValue\{...\}} \\
+脚注 & \texttt{\textbackslash footnote\{说明\}} \\
+无序 / 有序 / 术语列表 & \texttt{itemize}、\texttt{enumerate}、\texttt{description} \\
+引用块 & \texttt{\textbackslash begin\{quote\}} 与 \texttt{\textbackslash end\{quote\}} \\
+插图 & \texttt{\textbackslash includegraphics[width=.7\textbackslash linewidth]\{路径\}} \\
+图题与标签 & \texttt{\textbackslash caption\{...\}} 加 \texttt{\textbackslash label\{fig:...\}} \\
+三线表 & \texttt{tabular} 加 \texttt{\textbackslash toprule} / \texttt{\textbackslash midrule} / \texttt{\textbackslash bottomrule} \\
+自适应宽表 & \texttt{\textbackslash begin\{tabularx\}\{\textbackslash linewidth\}\{...\}} \\
+跨页长表 & \texttt{\textbackslash begin\{longtable\}}，本表就是实例 \\
+代码清单 & \texttt{\textbackslash CodeListing\{code/节/文件\}\{题注\}} \\
+指定语言的代码 & \texttt{\textbackslash CodeListing[Verilog]\{...\}\{...\}} \\
+带标签的代码 & \texttt{\textbackslash lstinputlisting[...label=\{lst:...\}]\{...\}} \\
+行内代码 & \texttt{\textbackslash lstinline} 或 \texttt{\textbackslash verb} \\
+行内公式 & \texttt{\$T = 1/f\$} \\
+编号公式 & \texttt{\textbackslash begin\{equation\}} 加 \texttt{\textbackslash label\{eq:...\}} \\
+多行公式 & \texttt{\textbackslash begin\{align\}}，用 \texttt{\&} 对齐等号 \\
+定义 / 定理 / 例题 / 证明 & \texttt{definition}、\texttt{theorem}、\texttt{example}、\texttt{proof} 环境 \\
+交叉引用 & \texttt{\textbackslash cref\{标签\}} \\
+引用文献 & \texttt{\textbackslash citep\{键\}} 与 \texttt{\textbackslash citet\{键\}} \\
+要点框 & \texttt{\textbackslash KeyPoint\{标题\}\{说明\}} \\
+强制分页 & \texttt{\textbackslash clearpage} \\
+\end{longtable}
+
+\subsection{常见错误清单}
+
+\begin{enumerate}
+  \item \textbf{手打章节号、图表号}。要写成 \verb|\cref{...}|，手打的数字改一次就错。
+  \item \textbf{用 \texttt{\textbackslash\textbackslash} 换行}。段落之间空一行即可。
+  \item \textbf{把长代码贴进正文}。放到 \texttt{code/} 下，用 \verb|\CodeListing| 引入。
+  \item \textbf{在正文里硬写字号、颜色、间距}。这类全局参数统一放
+        \texttt{config/appearance.tex}。
+  \item \textbf{修改生成文件}。\texttt{config/manifest.tex} 与 \texttt{config/README.md}
+        由脚本生成，手工改了下次会被覆盖。
+  \item \textbf{顺手改别人的章}。只动自己负责的目录；需要跨章改动先在 Issue 里说一声。
+  \item \textbf{图片或代码路径写错}。章里的路径相对本章目录，例如
+        \texttt{figures/\allowbreak05-pictures/\allowbreak demo-flow}，
+        不要写成仓库根目录下的路径。
+  \item \textbf{引用前忘了登记文献}。先在 \texttt{refs.bib} 里加条目，再写 \verb|\citep|。
+  \item \textbf{把编译产物提交上去}。\texttt{.aux}、\texttt{.log}、\texttt{.pdf} 都已被
+        \texttt{.gitignore} 忽略，\texttt{git status} 里看不到它们属正常。
+  \item \textbf{中英文之间手敲空格}。样式会自动处理间距，手敲反而会让断行位置变怪。
+\end{enumerate}
+
+\subsection{交付前的检查清单}
+
+\begin{enumerate}
+  \item 跑一遍 \verb|scripts/build.sh|，确认 \texttt{build/main.log} 里没有以
+        \texttt{!} 开头的错误；
+  \item 搜一遍 \texttt{待补充} 和 \texttt{TODO}，确认本节该填的占位都填完了；
+  \item 确认每张图、每个表、每个公式都在正文里被引用过，不留"孤儿"；
+  \item 在日志里搜 \texttt{undefined}，确认没有未解析的引用与引文；
+  \item 在任务 Issue 下评论 \verb|/complete| 发起复核。
+\end{enumerate}

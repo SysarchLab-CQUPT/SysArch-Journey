@@ -1,0 +1,132 @@
+\section{公式、定理与例题}
+\label{sec:00-math}
+
+\subsection{行内公式与行间公式}
+
+\begin{lstlisting}[language=TeX]
+流水线的加速比约为 $S=\dfrac{n}{k+n-1}$，其中 $n$ 是指令条数，$k$ 是流水级数。
+
+\[
+  T_{\text{流水}} = \max_i t_i + (n-1)\cdot \max_i t_i
+\]
+\end{lstlisting}
+
+效果：流水线的加速比约为 $S=\dfrac{n}{k+n-1}$，其中 $n$ 是指令条数，$k$ 是流水级数。
+
+\[
+  T_{\text{流水}} = \max_i t_i + (n-1)\cdot \max_i t_i
+\]
+
+行内公式前面不要留空行，\verb|$...$| 里的内容也不要换行。
+
+\subsection{带编号、可引用的公式}
+
+\begin{lstlisting}[language=TeX]
+\begin{equation}
+  \label{eq:00-speedup}
+  S = \frac{T_{\text{串行}}}{T_{\text{流水}}}
+\end{equation}
+\end{lstlisting}
+
+效果：
+
+\begin{equation}
+  \label{eq:00-speedup}
+  S = \frac{T_{\text{串行}}}{T_{\text{流水}}}
+\end{equation}
+
+引用时写 \verb|\cref{eq:00-speedup}|，效果是\cref{eq:00-speedup}。需要换行对齐的
+多行公式用 \texttt{align}：
+
+\begin{lstlisting}[language=TeX]
+\begin{align}
+  S &= \frac{1}{1-p+\frac{p}{k}} \\
+    &= \frac{k}{k+(1-p)k} \quad (\text{理想情况})
+\end{align}
+\end{lstlisting}
+
+效果：
+
+\begin{align}
+  S &= \frac{1}{1-p+\frac{p}{k}} \\
+    &= \frac{k}{k+(1-p)k} \quad (\text{理想情况})
+\end{align}
+
+\subsection{矩阵与分段函数}
+
+\begin{lstlisting}[language=TeX]
+\[
+  A = \begin{pmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{pmatrix}
+  \qquad
+  |x| = \begin{cases}
+    x,  & x \ge 0 \\
+    -x, & x < 0
+  \end{cases}
+\]
+\end{lstlisting}
+
+\[
+  A = \begin{pmatrix} a_{11} & a_{12} \\ a_{21} & a_{22} \end{pmatrix}
+  \qquad
+  |x| = \begin{cases}
+    x,  & x \ge 0 \\
+    -x, & x < 0
+  \end{cases}
+\]
+
+\subsection{常用符号}
+
+\begin{center}
+\begin{tabular}{@{}llll@{}}
+\toprule
+写法 & 效果 & 写法 & 效果 \\
+\midrule
+\verb|\alpha, \beta, \theta| & $\alpha,\beta,\theta$ &
+\verb|\sum_{i=1}^{n}| & $\sum_{i=1}^{n}$ \\
+\verb|\int_0^T| & $\int_0^T$ &
+\verb|\sqrt{x}| & $\sqrt{x}$ \\
+\verb|\frac{a}{b}| & $\frac{a}{b}$ &
+\verb|\cdot|、\verb|\times| & $\cdot$、$\times$ \\
+\verb|\le|、\verb|\ge|、\verb|\ne| & $\le$、$\ge$、$\ne$ &
+\verb|\in|、\verb|\subset| & $\in$、$\subset$ \\
+\verb|\mathbb{R}| & $\mathbb{R}$ &
+\verb|\mathcal{F}| & $\mathcal{F}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{定义、定理、例题}
+
+书里已经预置了三种环境，直接用：
+
+\begin{lstlisting}[language=TeX]
+\begin{definition}[指令集架构]
+软件与硬件之间的契约，规定了可见的寄存器、指令语义、数据类型与异常行为；
+它不规定这些行为由怎样的电路实现。
+\end{definition}
+
+\begin{theorem}[加速比上界]
+在理想流水线下，加速比不超过流水级数 $k$。
+\end{theorem}
+
+\begin{example}
+一条 5 级流水线，流水线填满后每周期完成 1 条指令。
+\end{example}
+\end{lstlisting}
+
+效果：
+
+\begin{definition}[指令集架构]
+软件与硬件之间的契约，规定了可见的寄存器、指令语义、数据类型与异常行为；
+它不规定这些行为由怎样的电路实现。
+\end{definition}
+
+\begin{theorem}[加速比上界]
+在理想流水线下，加速比不超过流水级数 $k$。
+\end{theorem}
+
+\begin{example}
+一条 5 级流水线，流水线填满后每周期完成 1 条指令。
+\end{example}
+
+证明用 \verb|\begin{proof}...\end{proof}|，结尾会自动画一个小方块。

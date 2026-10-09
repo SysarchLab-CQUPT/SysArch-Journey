@@ -1,0 +1,7 @@
+% 配置总入口：只按依赖顺序载入配置文件，不写正文。
+% 新增配置文件时在此追加一行，保持每个文件单一职责。
+%
+% 注意：appearance.tex 必须在 styles/project.sty 之前载入，
+% 因为 project.sty 会读取其中的版式与配色参数。
+\input{config/document}       % 书名、编著者、单位等元信息
+\input{config/appearance}     % 页面、字体、配色等排版参数

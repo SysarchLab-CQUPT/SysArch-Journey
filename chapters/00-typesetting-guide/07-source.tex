@@ -1,0 +1,53 @@
+\section{代码与源码}
+\label{sec:00-source}
+
+\subsection{代码清单}
+
+正文里不要直接贴长代码。源码放到本章的 \texttt{code/<节文件名>/} 下，
+再用 \verb|\CodeListing| 引入；本节的源码放在 \texttt{code/07-source/}。
+
+写法：
+
+\begin{lstlisting}[language=TeX]
+\CodeListing{code/07-source/bubble.c}{C 代码清单：冒泡排序}
+\end{lstlisting}
+
+效果：
+
+\CodeListing{code/07-source/bubble.c}{C 代码清单：冒泡排序}
+
+默认按 C 语言着色。其他语言在方括号里写明，例如 Verilog：
+
+\begin{lstlisting}[language=TeX]
+\CodeListing[Verilog]{code/07-source/pipeline_regs.v}{Verilog 代码清单：流水线寄存器}
+\end{lstlisting}
+
+效果：
+
+\CodeListing[Verilog]{code/07-source/pipeline_regs.v}{Verilog 代码清单：流水线寄存器}
+
+\subsection{需要被引用的代码清单}
+
+\verb|\CodeListing| 不带标签，如果这段代码要在别处被引用，用原始形式补一个
+\texttt{label}：
+
+\begin{lstlisting}[language=TeX]
+\lstinputlisting[language=C,caption={带标签的代码清单},label={lst:00-bubble}]{code/07-source/bubble.c}
+\end{lstlisting}
+
+效果：
+
+\lstinputlisting[language=C,caption={带标签的代码清单},label={lst:00-bubble}]{code/07-source/bubble.c}
+
+引用效果是 \cref{lst:00-bubble}——"代码 0.x"这种格式由样式统一处理，
+不用自己写"清单几"。
+
+\subsection{行内的短代码}
+
+一两个词、一条命令、一个类型名，直接写在句子里：文件名用
+\verb|\texttt{...}|（例如 \texttt{main.tex}），
+含特殊符号的片段用 \verb|\lstinline| 包起来，例如寄存器传输写成
+\lstinline|always @(posedge clk)| 这样。
+
+\KeyPoint{代码的三条规矩}{代码不能只贴不说，前后要写清它解决什么问题；
+注释保留中文，方便学生读懂；超过一屏的完整实现放附录，正文只留关键片段。}

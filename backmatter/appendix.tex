@@ -1,0 +1,18 @@
+\chapter{实验环境与工具链清单}
+\label{app:toolchain}
+
+% TODO：列出各章实验所需的软件、硬件与版本，并给出最小可用的安装步骤。
+
+\section{软件清单}
+\label{sec:appendix-software}
+
+交叉编译工具链、仿真器、综合工具与推理框架的版本应逐项登记，便于复现实验结果。
+
+\section{示例代码}
+\label{sec:appendix-code}
+
+每个写作单元都有自己的 \texttt{code/} 目录。前言和附录是全书级文件（由 \texttt{main.tex}
+直接读入），引用素材时写从仓库根目录起的路径；各章里的路径则相对本章目录。
+统一用 \verb|\CodeListing{路径}{图题}| 引入，避免把长代码直接写进正文。
+
+\CodeListing{backmatter/code/hello.c}{示例代码：用 \texttt{\textbackslash CodeListing} 引入的代码清单}

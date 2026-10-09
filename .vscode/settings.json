@@ -1,0 +1,53 @@
+{
+  // 保存时自动编译。
+  "latex-workshop.latex.autoBuild.run": "onSave",
+  "latex-workshop.latex.autoBuild.interval": 1000,
+
+  // ★ 关键设置：不要根据 main.tex 里的 "% !TeX program = xelatex" 决定编译器。
+  //   该选项默认开启。开启时 LaTeX Workshop 会跳过下面的 recipe，直接用裸
+  //   xelatex 编译；裸 xelatex 没有输出目录参数，PDF 和中间文件就会落在
+  //   仓库根目录。关掉它，editor 才会使用下面配置的 latexmk recipe。
+  "latex-workshop.latex.build.enableMagicComments": false,
+
+  // 编译命令：latexmk + XeLaTeX，产物全部写入 %OUTDIR%。
+  "latex-workshop.latex.recipe.default": "latexmk (xelatex)",
+  "latex-workshop.latex.recipes": [
+    { "name": "latexmk (xelatex)", "tools": ["latexmk (xelatex)"] }
+  ],
+  "latex-workshop.latex.tools": [
+    {
+      "name": "latexmk (xelatex)",
+      "command": "latexmk",
+      "args": [
+        "-xelatex",
+        "-synctex=1",
+        "-interaction=nonstopmode",
+        "-file-line-error",
+        "-outdir=%OUTDIR%",
+        "%DOC%"
+      ],
+      // 双保险：即使引擎没收到 -outdir，TeX 也会把产物写到 %OUTDIR%。
+      "env": { "TEXMF_OUTPUT_DIRECTORY": "%OUTDIR%" }
+    }
+  ],
+
+  // 万一将来重新打开魔法注释，magic 命令也同样带上输出目录。
+  "latex-workshop.latex.magic.args": [
+    "-synctex=1",
+    "-interaction=nonstopmode",
+    "-file-line-error",
+    "-output-directory=%OUTDIR%",
+    "%DOC%"
+  ],
+
+  // 产物目录：整本书 → 仓库根/build；单独编译某一章 → 该章目录/build。
+  "latex-workshop.latex.outDir": "%DIR%/build",
+
+  // false：保存任何文件都编译整本书，输出 build/main.pdf。
+  //       想让某一章单独快速预览、只出本章的 PDF，改成 true。
+  "latex-workshop.latex.rootFile.useSubFile": false,
+  "latex-workshop.latex.rootFile.doNotPrompt": true,
+
+  "latex-workshop.view.pdf.viewer": "tab",
+  "latex-workshop.message.error.show": true
+}

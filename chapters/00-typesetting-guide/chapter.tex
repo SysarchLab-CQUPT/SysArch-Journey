@@ -1,0 +1,37 @@
+% 第0章 排版示例：一本书里能写出什么
+% 这是给撰写人看的示例章，正式出版前可以整章删除。
+\documentclass[../../main.tex]{subfiles}
+
+\begin{document}
+
+% 让本章编号为 0，后面各章仍从 1 开始编号
+\setcounter{chapter}{-1}
+
+\chapter{排版示例：一本书里能写出什么}
+\label{ch:00-guide}
+
+这一章是给撰写人看的\textbf{示例章}：把书里能用的写法一层一层演示一遍。每处都是先给"写法"、
+再给"效果"，写正文时照着抄就行。正式出版前整章删除即可。
+
+\begin{itemize}
+  \item 第 \ref{sec:00-structure} 节：章、节、小节的层级
+  \item 第 \ref{sec:00-text} 节：文字格式　第 \ref{sec:00-lists} 节：列表
+  \item 第 \ref{sec:00-tables} 节：表格　第 \ref{sec:00-pictures} 节：图片
+  \item 第 \ref{sec:00-math} 节：公式与定理　第 \ref{sec:00-source} 节：代码
+  \item 第 \ref{sec:00-crossref} 节：交叉引用与文献　第 \ref{sec:00-boxes} 节：提示框
+  \item 第 \ref{sec:00-details} 节：排版细节　第 \ref{sec:00-assets} 节：素材放哪里
+\end{itemize}
+
+\input{01-structure}
+\input{02-text}
+\input{03-lists}
+\input{04-tables}
+\input{05-pictures}
+\input{06-math}
+\input{07-source}
+\input{08-crossref}
+\input{09-boxes}
+\input{10-details}
+\input{11-assets}
+
+\end{document}

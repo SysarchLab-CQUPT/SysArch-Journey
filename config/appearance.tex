@@ -1,0 +1,47 @@
+% 排版参数：只影响页面与视觉样式，不承载任何正文内容。
+% 长度保留 TeX 单位；颜色使用不带井号的六位十六进制 RGB 值。
+% 所有装饰都可以通过把"强度"设为 0 关闭——投稿或黑白打印时用得上。
+
+% ---- 页面与行距 ----
+\newcommand{\PageMarginTop}{25mm}
+\newcommand{\PageMarginBottom}{24mm}
+\newcommand{\PageMarginLeft}{27mm}
+\newcommand{\PageMarginRight}{25mm}
+\newcommand{\BodyLineSpread}{1.32}
+
+% ---- 正文配色 ----
+\newcommand{\BrandColorHTML}{17324D}      % 主色：深蓝，用于章标题、页眉
+\newcommand{\AccentColorHTML}{2B6D85}     % 强调色：青蓝，用于小标题、装饰线
+\newcommand{\MutedColorHTML}{667085}      % 次要信息
+\newcommand{\RuleColorHTML}{D5DDE5}       % 分隔线
+\newcommand{\PanelColorHTML}{F4F7FA}      % 浅色底
+\newcommand{\CodeBackgroundColorHTML}{F7F9FB}
+
+% ---- 封面配色 ----
+\newcommand{\CoverPaperColorHTML}{FCFDFE}   % 封面底色
+\newcommand{\CoverBandColorHTML}{17324D}    % 封面顶部深色带
+\newcommand{\CoverBandAccentHTML}{8CC0D6}   % 深色带里的浅色文字与线条
+
+% ---- 页边装饰配色 ----
+\newcommand{\TechLineColorHTML}{7FA8C0}     % 电路走线与页边色块
+
+% ---- 封面版式（长度单位为 mm，除注明外） ----
+\newcommand{\CoverBandHeight}{96}           % 顶部深色带高度
+\newcommand{\CoverTitleFontSize}{32pt}      % 书名
+\newcommand{\CoverTitleLeading}{46pt}
+\newcommand{\CoverSubtitleFontSize}{16pt}   % 副标题
+\newcommand{\CoverChipScale}{1}             % 封面芯片示意图缩放
+\newcommand{\CoverBadgePadX}{3.6mm}         % "工作稿"标签左右内边距
+\newcommand{\CoverBadgePadY}{1.9mm}         % "工作稿"标签上下内边距
+\newcommand{\CoverBadgeCorner}{1.4mm}       % "工作稿"标签圆角
+\newcommand{\CoverBadgeBorderTint}{65}      % "工作稿"标签描边强度（0 即无边框）
+
+% ---- 装饰强度（0 关闭，数值越大越明显） ----
+\newcommand{\CoverPatternTint}{20}          % 封面网格与电路
+\newcommand{\ChapterGridTint}{45}           % 章首页角落网格
+\newcommand{\ChapterBottomTint}{58}         % 章首页底部电路线
+\newcommand{\BodyBottomTint}{34}            % 正文页底部电路线
+\newcommand{\CoverGridStep}{5}              % 封面网格间距（mm）
+
+% ---- 代码清单 ----
+\newcommand{\CodeFontSize}{\small}

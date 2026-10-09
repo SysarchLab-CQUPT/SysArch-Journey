@@ -1,0 +1,102 @@
+name: 📋 任务发布
+description: 发布一个可以被认领、按期交付并接受复核的任务
+title: "[TASK] "
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 使用说明
+
+        用这个模板发布一个目标明确、可以被认领并按截止时间交付的任务。
+        交付物请写成可以逐项验收的清单，预估天数和 DDL 填实际值。
+
+        流程：执行人评论 `/assign` 认领 → 发布者回复 `/confirm` 确认 →
+        完成后执行人评论 `/complete` 发起复核 → 3 位不同成员分别评论 `LGTM`
+        后自动关闭。截止时间前 12 小时会自动提醒执行人。
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: 所属模块
+      description: 选择这项工作对应的章节或支撑方向。
+      options:
+        - 第0章 排版示例：一本书里能写出什么
+        - 第1章 计算机系统全貌与学习路线
+        - 第2章 数字逻辑与硬件描述语言
+        - 第3章 指令集架构与汇编编程
+        - 第4章 处理器微架构：从单周期到流水线
+        - 第5章 编译工具链与操作系统移植
+        - 第6章 SoC 集成、总线与外设
+        - 第7章 面向机器学习的加速器设计
+        - 第8章 TinyML 与嵌入式智能应用部署
+        - 配套代码与实验环境
+        - 排版、图表与校对
+        - 其他（请在补充信息中说明）
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: 任务背景与目标
+      description: 说明为什么需要这项工作、预期结果，以及它和整本书的关系。
+      placeholder: 描述任务背景、目标和范围。
+    validations:
+      required: true
+
+  - type: textarea
+    id: deliverables
+    attributes:
+      label: 交付清单
+      description: 每项交付物写成可勾选的子项，验收时逐条核对。
+      placeholder: |
+        - [ ] 交付项 1
+        - [ ] 交付项 2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: difficulty
+    attributes:
+      label: 任务难度
+      description: 按任务复杂度和风险选择。
+      options:
+        - 低
+        - 中
+        - 高
+    validations:
+      required: true
+
+  - type: input
+    id: estimated_days
+    attributes:
+      label: 预估天数
+      description: 预计需要几天完成，填大于 0 的数字（自然日），可用小数。
+      placeholder: "3"
+    validations:
+      required: true
+
+  - type: input
+    id: ddl
+    attributes:
+      label: 截止时间（DDL）
+      description: 精确到分钟，不用写时区；CI 统一按北京时间（UTC+8）解释。
+      placeholder: "2026-11-30 23:59"
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 验收标准
+      description: 说明怎样算完成：跑通什么、达到什么指标、由谁确认。可留空。
+      placeholder: |
+        1. ...
+        2. ...
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 补充信息
+      description: 依赖、参考资料、需要的硬件或软件环境；没有可留空。

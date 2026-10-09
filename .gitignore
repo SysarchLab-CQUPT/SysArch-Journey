@@ -1,0 +1,83 @@
+# ============================================================
+#  本仓库只提交源码：正文 .tex、脚本、配置，以及 assets/ 下的素材。
+#  编译产物应当只出现在 build/ 里。下面把各类中间文件全部忽略，
+#  这样即使有人在自己的目录里就地编译，也不会误提交到 GitHub。
+# ============================================================
+
+# ---------- 操作系统与编辑器留下的文件 ----------
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# ---------- 编译产物目录 ----------
+# 不带斜杠前缀，任意层级下名为 build 的目录都会被忽略
+build/
+
+# ---------- LaTeX 中间文件 ----------
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.xdv
+*.synctex.gz
+*.auxlock
+
+# 编辑器正在编译时产生的临时文件（后缀带 (busy)）
+*.synctex.gz(busy)
+*.fls(busy)
+*.fdb_latexmk(busy)
+*.log(busy)
+
+# bibtex / biblatex / makeindex / glossaries 等的产物
+*.bcf
+*.run.xml
+*.blg
+*.ilg
+*.ind
+*.idx
+*.glo
+*.gls
+*.glg
+*.ist
+*.acn
+*.acr
+*.alg
+*.nlo
+*.nls
+*.lol
+*.maf
+*.mtc
+*.mtc0
+*.ptc
+*.xdy
+*.thm
+*.loa
+*.brf
+
+# listings / beamer 等
+*.spl
+*.nav
+*.snm
+*.vrb
+*.upa
+*.upb
+
+# ---------- PDF ----------
+# 编译产生的 PDF 一律忽略（书的 PDF 只在 build/ 里）。
+# 但各单元的 figures/ 目录下是插图，要提交，所以单独放行。
+*.pdf
+!**/figures/**/*.pdf
+
+# ---------- Python（weekly-status 的脚本）----------
+__pycache__/
+*.py[cod]
+
+# ---------- 本机字体副本（可选，不入库）----------
+fonts/

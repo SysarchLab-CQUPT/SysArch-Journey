@@ -1,0 +1,74 @@
+name: ❓ 技术问题
+description: 就教材内容、配套代码或实验环境提出一个具体问题
+title: "[提问] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 使用说明
+
+        提问前请先搜索已有 Issue，避免重复。请写清楚具体位置、你做了什么、
+        以及完整的报错信息，这样别人才能给出有针对性的回答。
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: 所属模块
+      description: 问题涉及哪个章节或方向。
+      options:
+        - 第0章 排版示例：一本书里能写出什么
+        - 第1章 计算机系统全貌与学习路线
+        - 第2章 数字逻辑与硬件描述语言
+        - 第3章 指令集架构与汇编编程
+        - 第4章 处理器微架构：从单周期到流水线
+        - 第5章 编译工具链与操作系统移植
+        - 第6章 SoC 集成、总线与外设
+        - 第7章 面向机器学习的加速器设计
+        - 第8章 TinyML 与嵌入式智能应用部署
+        - 配套代码与实验环境
+        - 排版与编译
+        - 其他
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: 相关位置
+      description: 章节号、页码范围，或仓库里的文件路径。
+      placeholder: 例如：第 4 章 4.2 节 / chapters/04-processor-core/02-pipeline.tex
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: 问题描述
+      description: 你想做什么、卡在哪里、完整的报错信息。
+      placeholder: |
+        - 我想做的事：...
+        - 我试过的方法：...
+        - 具体卡住的地方或报错：...
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境信息
+      description: 操作系统、编译器与工具版本；涉及编译问题时请附上 build/main.log 的相关片段。
+      placeholder: |
+        - 操作系统：macOS 15 / Windows 11 / Ubuntu 24.04
+        - TeX Live 版本：
+        - 其他工具版本：
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: 确认事项
+      options:
+        - label: 我已经搜索过现有 Issue，确认这不是重复提问
+          required: true
+        - label: 我已经写清了问题的具体位置
+          required: true
