@@ -1,15 +1,21 @@
-% 第06章 SoC 集成、总线与外设
+% 第06章 玩转 CPU 与 SoC
 % 由 scripts/new-chapter.py 生成。
 % 单章预览：scripts/build.sh chapters/06-soc-integration/chapter.tex
+%
+% 素材约定（路径都相对本章目录）：
+%   本节专属的图   figures/<节文件名>/xxx     代码  code/<节文件名>/xxx
+%   本章多节共用   figures/xxx                代码  code/xxx
+%   跨章复用       放在主用它的那一章，其他章用 ../NN-xxx/figures/xxx 引用
 \documentclass[../../main.tex]{subfiles}
 
 \begin{document}
 
-\chapter{SoC 集成、总线与外设}
+\chapter{玩转 CPU 与 SoC}
 \label{ch:06-soc-integration}
-\input{01-bus}
+\input{01-embedded-basics}
 \input{02-peripheral}
-\input{03-dma}
-\input{04-eda}
+\input{03-embedded-system}
+\input{04-bus}
+\input{05-more-peripherals}
 
 \end{document}

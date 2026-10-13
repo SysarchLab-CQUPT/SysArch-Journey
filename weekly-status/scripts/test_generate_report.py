@@ -15,7 +15,7 @@ import generate_report as report
 START, END = report.week_range(date(2026, 8, 31))
 
 # 测试用的模块，对应仓库里真实的一章，让报告分组与链接可预期。
-CHAPTER = ("第8章 TinyML 与嵌入式智能应用部署", "chapters/08-edge-intelligence")
+CHAPTER = ("第9章 TinyML 与嵌入式智能应用部署", "chapters/09-edge-intelligence")
 CHAPTER_BODY = "### 所属模块\n" + CHAPTER[0]
 
 
@@ -72,7 +72,7 @@ class ReportTest(unittest.TestCase):
         text = report.build_report([task, task], {}, START, END, modules=[CHAPTER])
         self.assertIn("| 总计 | 1 | 1 | 1 | 1 | 0 | 0 |", text)
         self.assertIn(
-            "| [%s](https://github.com/owner/repo/tree/HEAD/chapters/08-edge-intelligence) | 1 | 1 | 1 | 1 | 0 | 0 |"
+            "| [%s](https://github.com/owner/repo/tree/HEAD/chapters/09-edge-intelligence) | 1 | 1 | 1 | 1 | 0 | 0 |"
             % CHAPTER[0], text)
         self.assertIn("[#7](https://example.test/7)", text)
 
@@ -212,8 +212,8 @@ class ReportTest(unittest.TestCase):
         modules = report.repo_modules()
         self.assertIn(CHAPTER, modules)
         self.assertEqual(report.resolve_module(CHAPTER[0], modules), CHAPTER)
-        self.assertEqual(report.resolve_module("chapters/08-edge-intelligence", modules), CHAPTER)
-        self.assertEqual(report.resolve_module("08-edge-intelligence", modules), CHAPTER)
+        self.assertEqual(report.resolve_module("chapters/09-edge-intelligence", modules), CHAPTER)
+        self.assertEqual(report.resolve_module("09-edge-intelligence", modules), CHAPTER)
         self.assertEqual(report.resolve_module("排版、图表与校对", modules), ("排版、图表与校对", None))
 
     def test_unknown_module_keeps_its_own_group(self):
