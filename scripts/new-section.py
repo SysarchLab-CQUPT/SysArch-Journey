@@ -78,7 +78,9 @@ def main():
     if not chapter_tex.is_file():
         raise SystemExit("找不到 %s，请确认这是章目录。" % chapter_tex)
 
-    chapter = re.sub(r"^\d+-", "", chapter_dir.name)
+    # 标签用完整的目录名（含数字前缀），与 new-chapter.py 生成的
+    # sec:NN-xxx-MM 保持一致，例如 chapters/04-processor-core → sec:04-processor-core-02。
+    chapter = chapter_dir.name
     index = next_index(chapter_dir)
 
     if args.filename:

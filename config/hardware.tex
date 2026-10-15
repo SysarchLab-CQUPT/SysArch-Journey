@@ -1,0 +1,19 @@
+% 实验平台（硬件）公共信息：全书统一使用的开发板。
+% 型号、厂商等只在此处维护一次，正文引用宏，不要各章硬编码。
+% 换板子只改这一个文件；尚未确认的内容统一使用 \PendingValue 占位。
+
+% 开发板。型号与 FPGA 型号的对应关系是从型号串 xc7k325tffg900-2 推出的
+% （XC7K325T / FFG900 封装 / -2 速度等级），落地前请对照板卡丝印与官方手册核实；
+% 厂商名取自课件文件名，同样需要核实。
+\newcommand{\BoardVendor}{竞业达}
+\newcommand{\BoardModel}{xc7k325tffg900-2}
+\newcommand{\BoardFPGA}{Xilinx Kintex-7 XC7K325T-2FFG900}
+\newcommand{\BoardName}{\BoardVendor{}开发板（\BoardModel{}）}
+
+% 板卡资料与工具链。
+\newcommand{\BoardManual}{《竞业达开发板使用说明》}
+\newcommand{\BoardToolchain}{Vivado}
+\newcommand{\BoardToolVersion}{\PendingValue}   % 待确认：本书统一使用的 Vivado 版本
+
+% 正文里指代"全书统一实验平台"时用这个宏，方便将来整体替换。
+\newcommand{\ExperimentPlatform}{\BoardName}
