@@ -50,16 +50,18 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Stage Pages site
+        env:
+          SITE_DIR: ${{ runner.temp }}/pdf-pages
         run: |
-          mkdir -p build/pages
-          cp build/main.pdf build/pages/main.pdf
-          cp .github/pages/index.html build/pages/index.html
-          touch build/pages/.nojekyll
+          mkdir -p "$SITE_DIR"
+          cp build/main.pdf "$SITE_DIR/main.pdf"
+          cp .github/pages/index.html "$SITE_DIR/index.html"
+          touch "$SITE_DIR/.nojekyll"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build/pages
+          path: ${{ runner.temp }}/pdf-pages
 
   deploy:
     needs: build
