@@ -73,7 +73,7 @@ body:
     id: estimated_days
     attributes:
       label: 预估天数
-      description: 预计需要几天完成，填大于 0 的数字（自然日），可用小数。
+      description: 预计需要几天完成，填大于 0 的数字（自然日），可用小数；任务完成积分按此值计算。
       placeholder: "3"
     validations:
       required: true

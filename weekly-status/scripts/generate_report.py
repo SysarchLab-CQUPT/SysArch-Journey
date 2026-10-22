@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import math
 import os
 import re
 import sys
@@ -218,6 +219,16 @@ def completion_days(issue, comments):
     return days if days >= 0 else None
 
 
+def estimated_task_days(issue):
+    """Return the positive estimated-days value from the task template."""
+    value = issue_section(issue.get("body") or "", "预估天数")
+    try:
+        days = float(value)
+    except (TypeError, ValueError):
+        return None
+    return days if math.isfinite(days) and days > 0 else None
+
+
 def format_days(value):
     if value is None:
         return "-"
@@ -361,6 +372,7 @@ def build_score_report(issues, comments_by_issue, start, end, repo="owner/repo",
     seen = set()
     unassigned_points = 0.0
     unassigned_count = 0
+    unestimated_count = 0
 
     def person_record(login, when=None):
         record = people[login]
@@ -426,8 +438,9 @@ def build_score_report(issues, comments_by_issue, start, end, repo="owner/repo",
         closed_at = parse_github_time(issue["closed_at"])
         if closed_at >= end:
             continue
-        days = completion_days(issue, comments)
+        days = estimated_task_days(issue)
         if days is None:
+            unestimated_count += 1
             continue
 
         weekly = start <= closed_at < end
@@ -538,7 +551,7 @@ def build_score_report(issues, comments_by_issue, start, end, repo="owner/repo",
             )
         )
     completion_table = (
-        "| Issue | 任务 | 计分人员 | 所属模块 | 完成日期 | 完成用时（天） | 每人积分（天） |\n"
+        "| Issue | 任务 | 计分人员 | 所属模块 | 完成日期 | 预估天数 | 每人积分（天） |\n"
         "| --- | --- | --- | --- | --- | --- | --- |\n"
         + ("\n".join(completion_rows) if completion_rows else "| - | 暂无已完成任务 | - | - | - | - | - |")
     )
@@ -588,8 +601,13 @@ def build_score_report(issues, comments_by_issue, start, end, repo="owner/repo",
     )
 
     unassigned_note = ""
+    if unestimated_count:
+        unassigned_note += (
+            "\n\n有 %d 个已完成任务缺少有效的“预估天数”（必须为大于 0 的数字），"
+            "未计入任务完成积分。" % unestimated_count
+        )
     if unassigned_count:
-        unassigned_note = (
+        unassigned_note += (
             "\n\n有 %d 个已完成任务未能确定执行人，共 %s 天积分未计入个人排名。"
             % (unassigned_count, format_days(unassigned_points))
         )
@@ -598,8 +616,8 @@ def build_score_report(issues, comments_by_issue, start, end, repo="owner/repo",
         "# 人员积分统计：%s\n\n"
         "统计截至北京时间 %s 00:00（不含）。\n\n"
         "积分规则：\n"
-        "1. 任务完成积分＝从认领确认（没有认领记录时从创建）到任务关闭的自然日用时；"
-        "多人共同认领时平均分配。\n"
+        "1. 任务完成积分＝Issue 表单中填写的“预估天数”；多人共同认领时平均分配。"
+        "周报中的“完成用时”仍记录实际用时，不用于本项积分。\n"
         "2. 单独评论 `LGTM` 记 %s 天；`LGTM` 后附至少 %d 个文字或数字的修改建议记 %s 天。"
         "同一人对同一任务只取最高档，不重复计分。\n"
         "3. 每发布一个 `[TASK]` Issue 记 %s 天，按发布时间计入。\n\n"

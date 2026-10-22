@@ -19,6 +19,10 @@ CHAPTER = ("第9章 TinyML 与嵌入式智能应用部署", "chapters/09-edge-in
 CHAPTER_BODY = "### 所属模块\n" + CHAPTER[0]
 
 
+def body_with_estimate(days):
+    return CHAPTER_BODY + "\n### 预估天数\n" + str(days)
+
+
 def issue(number=1, state="open", created_at="2026-09-01T00:00:00Z", body="", assignees=None,
           title="[TASK] Test", **fields):
     result = {
@@ -224,13 +228,20 @@ class ReportTest(unittest.TestCase):
         self.assertEqual(report.format_days(1.26), "1.3")
         self.assertEqual(report.format_days(0.5), "0.5")
 
+    def test_estimated_task_days_accepts_positive_numbers_only(self):
+        self.assertEqual(report.estimated_task_days(issue(body=body_with_estimate("2.5"))), 2.5)
+        self.assertIsNone(report.estimated_task_days(issue(body=body_with_estimate("0"))))
+        self.assertIsNone(report.estimated_task_days(issue(body=body_with_estimate("-1"))))
+        self.assertIsNone(report.estimated_task_days(issue(body=body_with_estimate("abc"))))
+        self.assertIsNone(report.estimated_task_days(issue(body=CHAPTER_BODY)))
+
     def test_score_report_tracks_cumulative_and_weekly_points(self):
         current = issue(
             1,
             state="closed",
             created_at="2026-08-25T00:00:00Z",
             closed_at="2026-09-04T00:00:00Z",
-            body=CHAPTER_BODY,
+            body=body_with_estimate("5"),
             assignees=[{"login": "alice"}],
         )
         previous = issue(
@@ -238,7 +249,7 @@ class ReportTest(unittest.TestCase):
             state="closed",
             created_at="2026-08-17T00:00:00Z",
             closed_at="2026-08-20T00:00:00Z",
-            body=CHAPTER_BODY,
+            body=body_with_estimate("2"),
             assignees=[{"login": "alice"}],
         )
         shared = issue(
@@ -246,7 +257,7 @@ class ReportTest(unittest.TestCase):
             state="closed",
             created_at="2026-08-31T00:00:00Z",
             closed_at="2026-09-06T00:00:00Z",
-            body=CHAPTER_BODY,
+            body=body_with_estimate("4"),
             assignees=[{"login": "alice"}, {"login": "bob"}],
         )
         outside_week = issue(
@@ -254,7 +265,7 @@ class ReportTest(unittest.TestCase):
             state="closed",
             created_at="2026-09-01T00:00:00Z",
             closed_at="2026-09-08T00:00:00Z",
-            body=CHAPTER_BODY,
+            body=body_with_estimate("10"),
             assignees=[{"login": "alice"}],
         )
         comments = {
@@ -275,10 +286,10 @@ class ReportTest(unittest.TestCase):
         )
 
         self.assertIn("# 人员积分统计：2026-08-31", text)
-        self.assertIn("| 1 | @alice | 10 | 0 | 0 | 10 | 7 | 3 | 0 | 0 | 0 | 2026-09-06 |", text)
+        self.assertIn("| 1 | @alice | 9 | 0 | 0 | 9 | 7 | 3 | 0 | 0 | 0 | 2026-09-06 |", text)
         self.assertIn("| 2 | @creator | 0 | 0 | 3.2 | 3.2 | 1.6 | 0 | 0 | 0 | 4 | 2026-09-01 |", text)
-        self.assertIn("| 3 | @bob | 3 | 0 | 0 | 3 | 3 | 1 | 0 | 0 | 0 | 2026-09-06 |", text)
-        self.assertIn("| 合计（人次） | - | 13 | 0 | 3.2 | 16.2 | 11.6 | 4 | 0 | 0 | 4 | - |", text)
+        self.assertIn("| 3 | @bob | 2 | 0 | 0 | 2 | 2 | 1 | 0 | 0 | 0 | 2026-09-06 |", text)
+        self.assertIn("| 合计（人次） | - | 11 | 0 | 3.2 | 14.2 | 10.6 | 4 | 0 | 0 | 4 | - |", text)
         self.assertNotIn("| [#4](https://example.test/4) | Test | @alice |", text)
         self.assertIn("| 每人积分（天） |", text)
 
@@ -288,11 +299,27 @@ class ReportTest(unittest.TestCase):
             state="closed",
             created_at="2026-08-31T00:00:00Z",
             closed_at="2026-09-02T00:00:00Z",
-            body=CHAPTER_BODY,
+            body=body_with_estimate("2"),
         )
         text = report.build_score_report([task], {}, START, END, modules=[CHAPTER])
         self.assertIn("| 1 | @creator | 0 | 0 | 0.8 | 0.8 | 0.8 | 0 | 0 | 0 | 1 |", text)
         self.assertIn("有 1 个已完成任务未能确定执行人，共 2 天积分未计入个人排名。", text)
+
+    def test_completed_task_without_estimate_gets_no_completion_points(self):
+        task = issue(
+            10,
+            state="closed",
+            created_at="2026-08-31T00:00:00Z",
+            closed_at="2026-09-02T00:00:00Z",
+            body=CHAPTER_BODY,
+            assignees=[{"login": "alice"}],
+        )
+        text = report.build_score_report([task], {}, START, END, modules=[CHAPTER])
+        self.assertNotIn("@alice", text)
+        self.assertIn(
+            "有 1 个已完成任务缺少有效的“预估天数”（必须为大于 0 的数字），未计入任务完成积分。",
+            text,
+        )
 
     def test_score_report_awards_lgtm_review_and_task_publication_points(self):
         task = issue(
