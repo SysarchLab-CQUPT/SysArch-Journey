@@ -3,10 +3,15 @@
 
 import argparse
 import json
+import os
 import re
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
 
@@ -36,6 +41,131 @@ def git_value(*args):
         ).strip()
     except (OSError, subprocess.CalledProcessError):
         return ""
+
+
+def repo_slug():
+    value = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    if value.count("/") == 1:
+        return value
+    remote = git_value("remote", "get-url", "origin")
+    match = re.search(r"github\.com[:/]([^/]+/[^/.]+)(?:\.git)?$", remote)
+    return match.group(1) if match else ""
+
+
+def next_link(header):
+    for part in (header or "").split(","):
+        match = re.search(r'<([^>]+)>;\s*rel="next"', part)
+        if match:
+            return match.group(1)
+    return None
+
+
+def github_request(url, token=""):
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "sysarch-journey-site-info",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    if token:
+        headers["Authorization"] = "Bearer " + token
+    request = Request(url, headers=headers)
+    with urlopen(request, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8")), response.headers.get("Link", "")
+
+
+def github_pages(path, token=""):
+    url = "https://api.github.com" + path
+    values = []
+    while url:
+        page, links = github_request(url, token)
+        if not isinstance(page, list):
+            raise RuntimeError("GitHub API returned a non-list response")
+        values.extend(page)
+        url = next_link(links)
+    return values
+
+
+def collaboration_info():
+    repo = repo_slug()
+    if not repo:
+        return {"collaborator_count": 0, "collaborators": []}
+    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or ""
+    people = {}
+
+    def add_person(user, field=None):
+        if not user:
+            return
+        login = user.get("login")
+        if not login or user.get("type") == "Bot" or login.endswith("[bot]"):
+            return
+        key = login.lower()
+        record = people.setdefault(key, {
+            "login": login,
+            "commits": 0,
+            "tasks_published": 0,
+            "tasks_claimed": 0,
+            "task_comments": 0,
+            "review_comments": 0,
+        })
+        if field:
+            record[field] += 1
+
+    try:
+        contributors = github_pages(
+            "/repos/%s/contributors?%s" % (repo, urlencode({"per_page": 100})),
+            token,
+        )
+        for contributor in contributors:
+            add_person(contributor, "commits")
+            key = (contributor.get("login") or "").lower()
+            if key in people:
+                people[key]["commits"] = contributor.get("contributions", 1)
+
+        issues = github_pages(
+            "/repos/%s/issues?%s" % (repo, urlencode({"state": "all", "per_page": 100})),
+            token,
+        )
+        for issue in issues:
+            if issue.get("pull_request") or not re.match(r"^\[TASK\]\s+\S", issue.get("title") or ""):
+                continue
+            add_person(issue.get("user"), "tasks_published")
+            for assignee in issue.get("assignees", []):
+                add_person(assignee, "tasks_claimed")
+            if issue.get("comments"):
+                comments = github_pages(
+                    "/repos/%s/issues/%s/comments?%s" % (
+                        repo,
+                        issue["number"],
+                        urlencode({"per_page": 100}),
+                    ),
+                    token,
+                )
+                for comment in comments:
+                    add_person(comment.get("user"), "task_comments")
+                    if re.match(r"^LGTM\b", (comment.get("body") or "").strip(), re.IGNORECASE):
+                        user = comment.get("user") or {}
+                        if user.get("login"):
+                            people[user["login"].lower()]["review_comments"] += 1
+    except (HTTPError, URLError, TimeoutError, RuntimeError, ValueError) as error:
+        print("warning: collaboration data unavailable: %s" % error, file=sys.stderr)
+
+    collaborators = sorted(
+        people.values(),
+        key=lambda person: (
+            -sum((
+                person["commits"],
+                person["tasks_published"],
+                person["tasks_claimed"],
+                person["task_comments"],
+                person["review_comments"],
+            )),
+            person["login"].lower(),
+        ),
+    )
+    return {
+        "collaborator_count": len(collaborators),
+        "collaborators": collaborators,
+    }
 
 
 def strip_comments(source):
@@ -183,6 +313,16 @@ def updated_at():
     )
 
 
+def first_commit_at():
+    roots = git_value("rev-list", "--max-parents=0", "HEAD").splitlines()
+    dates = []
+    for root in roots:
+        value = git_value("show", "-s", "--format=%aI", root)
+        if value:
+            dates.append(datetime.fromisoformat(value).astimezone(BEIJING))
+    return min(dates) if dates else updated_at()
+
+
 def build_info():
     chapters = chapter_info()
     counts = count_source(source_paths())
@@ -192,11 +332,18 @@ def build_info():
             image_count += count_images(path.read_text(encoding="utf-8"), ROOT)
     pdf_path = ROOT / "build" / "main.pdf"
     changed = updated_at()
+    started = first_commit_at()
+    built = datetime.now(BEIJING)
+    collaboration = collaboration_info()
     return {
         "updated_at": changed.date().isoformat(),
         "updated_at_iso": changed.isoformat(),
-        "built_at": datetime.now(BEIJING).date().isoformat(),
+        "built_at": built.date().isoformat(),
+        "project_started_at": started.date().isoformat(),
+        "development_days": max(1, (built.date() - started.date()).days),
         "commit": git_value("rev-parse", "--short", "HEAD") or "unknown",
+        "collaborator_count": collaboration["collaborator_count"],
+        "collaborators": collaboration["collaborators"],
         "chapter_count": len(chapters),
         "section_count": sum(chapter["section_count"] for chapter in chapters),
         "word_count": counts["word_count"],

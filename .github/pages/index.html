@@ -15,7 +15,7 @@
       --muted: #667085;
       --paper: #ffffff;
       --header-height: 67px;
-      --info-height: 92px;
+      --info-height: 42px;
     }
 
     * {
@@ -66,11 +66,59 @@
       position: sticky;
       top: var(--header-height);
       z-index: 24;
-      height: var(--info-height);
-      padding: 8px 22px 6px;
+      height: auto;
+      padding: 0 22px;
       border-bottom: 1px solid var(--line);
       background: var(--panel);
       overflow: visible;
+    }
+
+    body.info-expanded {
+      --info-height: 112px;
+    }
+
+    .info-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 42px;
+    }
+
+    .info-summary-text {
+      display: flex;
+      min-width: 0;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .info-summary strong {
+      flex: none;
+      font-size: 13px;
+    }
+
+    #info-brief {
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .info-toggle {
+      flex: none;
+      min-width: 76px;
+      padding: 5px 10px;
+      font-size: 12px;
+      background: var(--paper);
+    }
+
+    .info-details {
+      padding-bottom: 6px;
+    }
+
+    .book-info.collapsed .info-details {
+      display: none;
     }
 
     .meta-row {
@@ -85,7 +133,10 @@
     .meta-item {
       flex: none;
       min-width: 118px;
+      max-width: 190px;
+      width: max-content;
       padding: 6px 11px;
+      overflow: hidden;
       border: 1px solid rgb(213 221 229 / 90%);
       border-radius: 7px;
       background: var(--paper);
@@ -93,14 +144,23 @@
 
     .meta-item strong {
       display: block;
+      max-width: 100%;
       margin-bottom: 2px;
+      overflow: hidden;
       color: var(--brand);
       font-size: 14px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .meta-item span {
+      display: block;
+      max-width: 100%;
+      overflow: hidden;
       color: var(--muted);
       font-size: 11px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .download {
@@ -127,6 +187,7 @@
       border-bottom: 1px solid var(--line);
       background: var(--paper);
       backdrop-filter: blur(8px);
+      transition: top 180ms ease;
     }
 
     .progress-track {
@@ -148,30 +209,40 @@
       transition: width 180ms ease;
     }
 
-    .chapter-overview {
+    .info-links {
       position: relative;
+      display: flex;
+      align-items: center;
+      gap: 16px;
       margin-top: 3px;
+    }
+
+    .chapter-overview,
+    .contributor-overview {
+      position: relative;
       color: var(--brand);
       font-size: 13px;
     }
 
-    .chapter-overview summary {
+    .chapter-overview summary,
+    .contributor-overview summary {
       width: fit-content;
       color: var(--accent);
       cursor: pointer;
       font-weight: 700;
     }
 
-    .chapter-list {
+    .chapter-list,
+    .contributor-list {
       margin: 9px 0 0;
       padding: 0;
       list-style: none;
     }
 
-    .chapter-overview[open] .chapter-list {
+    .chapter-overview[open] .chapter-list,
+    .contributor-overview[open] .contributor-list {
       position: absolute;
       top: 24px;
-      left: 0;
       z-index: 48;
       width: min(760px, calc(100vw - 34px));
       max-height: calc(100vh - var(--header-height) - var(--info-height) - 72px);
@@ -184,6 +255,14 @@
       box-shadow: 0 16px 36px rgb(23 50 77 / 18%);
     }
 
+    .chapter-overview[open] .chapter-list {
+      left: 0;
+    }
+
+    .contributor-overview[open] .contributor-list {
+      left: -120px;
+    }
+
     .chapter-list li {
       padding: 8px 0;
       border-top: 1px solid rgb(213 221 229 / 75%);
@@ -193,6 +272,7 @@
       display: flex;
       align-items: baseline;
       justify-content: space-between;
+      flex-wrap: wrap;
       gap: 12px;
     }
 
@@ -201,9 +281,10 @@
     }
 
     .chapter-line span {
-      flex: none;
+      flex: 0 1 auto;
       color: var(--muted);
       font-size: 12px;
+      overflow-wrap: anywhere;
     }
 
     .chapter-sections {
@@ -225,12 +306,44 @@
 
     .section-name {
       min-width: 0;
+      overflow-wrap: anywhere;
     }
 
     .section-metrics {
       flex: none;
       color: var(--accent);
       white-space: nowrap;
+    }
+
+    .contributor-list li {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 8px 0;
+      border-top: 1px solid rgb(213 221 229 / 75%);
+    }
+
+    .contributor-list li:first-child {
+      border-top: 0;
+    }
+
+    .contributor-list a {
+      color: var(--accent);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .contributor-meta {
+      flex: none;
+      color: var(--muted);
+      font-size: 11px;
+      text-align: right;
+    }
+
+    .contributor-empty {
+      padding: 10px 0;
+      color: var(--muted);
     }
 
     button,
@@ -460,7 +573,11 @@
     @media (max-width: 640px) {
       :root {
         --header-height: 52px;
-        --info-height: 78px;
+        --info-height: 42px;
+      }
+
+      body.info-expanded {
+        --info-height: 96px;
       }
 
       header {
@@ -482,7 +599,25 @@
       }
 
       .book-info {
-        padding: 6px 8px 5px;
+        padding: 0 8px;
+      }
+
+      .info-summary {
+        gap: 8px;
+      }
+
+      .info-summary-text {
+        gap: 7px;
+      }
+
+      #info-brief {
+        font-size: 11px;
+      }
+
+      .info-toggle {
+        min-width: 68px;
+        padding-right: 8px;
+        padding-left: 8px;
       }
 
       .meta-row {
@@ -598,8 +733,17 @@
     <a class="download" href="main.pdf" download>下载 PDF</a>
   </header>
 
-  <section id="book-info" class="book-info" aria-label="本书数据">
-    <div class="meta-row">
+  <section id="book-info" class="book-info collapsed" aria-label="本书数据">
+    <div class="info-summary">
+      <div class="info-summary-text">
+        <strong>书籍概况</strong>
+        <span id="info-brief">正在统计书籍信息…</span>
+      </div>
+      <button id="info-toggle" class="info-toggle" type="button"
+              aria-controls="book-info-details" aria-expanded="false">展开数据</button>
+    </div>
+    <div id="book-info-details" class="info-details">
+      <div class="meta-row">
       <div class="meta-item">
         <strong id="meta-updated">–</strong>
         <span>最近更新</span>
@@ -628,11 +772,26 @@
         <strong id="meta-size">–</strong>
         <span>文件大小</span>
       </div>
+      <div class="meta-item">
+        <strong id="meta-duration">–</strong>
+        <span>写作持续</span>
+      </div>
+      <div class="meta-item">
+        <strong id="meta-collaborators">–</strong>
+        <span>协作人员</span>
+      </div>
+      </div>
+      <div class="info-links">
+        <details class="chapter-overview">
+          <summary>展开章节概览</summary>
+          <ol id="chapter-list" class="chapter-list"></ol>
+        </details>
+        <details class="contributor-overview">
+          <summary>协作人员（<span id="collaborator-count">–</span> 人）</summary>
+          <ul id="collaborator-list" class="contributor-list"></ul>
+        </details>
+      </div>
     </div>
-    <details class="chapter-overview">
-      <summary>展开章节概览</summary>
-      <ol id="chapter-list" class="chapter-list"></ol>
-    </details>
   </section>
 
   <nav class="toolbar" aria-label="PDF 页面导航">
@@ -691,7 +850,13 @@
       const pageNumber = document.getElementById('page-number');
       const pageCount = document.getElementById('page-count');
       const bookInfo = document.getElementById('book-info');
+      const infoToggle = document.getElementById('info-toggle');
+      const infoBrief = document.getElementById('info-brief');
       const chapterList = document.getElementById('chapter-list');
+      const chapterOverview = document.querySelector('.chapter-overview');
+      const collaboratorList = document.getElementById('collaborator-list');
+      const collaboratorCount = document.getElementById('collaborator-count');
+      const contributorOverview = document.querySelector('.contributor-overview');
       const readingProgress = document.getElementById('reading-progress');
       const progressTrack = document.getElementById('progress-track');
       const tocToggle = document.getElementById('toc-toggle');
@@ -743,6 +908,17 @@
         document.getElementById('meta-pages').textContent =
           Number.isFinite(info.page_count) ? `${info.page_count} 页` : '–';
         document.getElementById('meta-size').textContent = formatFileSize(info.pdf_bytes);
+        document.getElementById('meta-duration').textContent =
+          Number.isFinite(info.development_days) ? `${info.development_days} 天` : '–';
+        document.getElementById('meta-collaborators').textContent =
+          `${info.collaborator_count || 0} 人`;
+        collaboratorCount.textContent = String(info.collaborator_count || 0);
+        infoBrief.textContent =
+          `${info.development_days || 0} 天 · ` +
+          `${info.collaborator_count || 0} 人协作 · ` +
+          `${info.chapter_count || 0} 章 · ${info.section_count || 0} 节 · ` +
+          `${Number.isFinite(info.page_count) ? info.page_count : 0} 页 · ` +
+          `${(info.image_count || 0).toLocaleString('zh-CN')} 图`;
 
         chapterList.textContent = '';
         for (const chapter of info.chapters || []) {
@@ -786,6 +962,36 @@
           }
           item.append(line, sections);
           chapterList.append(item);
+        }
+
+        collaboratorList.textContent = '';
+        if (!(info.collaborators || []).length) {
+          const empty = document.createElement('li');
+          empty.className = 'contributor-empty';
+          empty.textContent = '暂无可公开的协作人员记录。';
+          collaboratorList.append(empty);
+        } else {
+          for (const person of info.collaborators) {
+            const item = document.createElement('li');
+            const link = document.createElement('a');
+            link.href = `https://github.com/${encodeURIComponent(person.login)}`;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = `@${person.login}`;
+
+            const roles = [];
+            if (person.commits) roles.push(`提交 ${person.commits}`);
+            if (person.tasks_published) roles.push(`发布 ${person.tasks_published}`);
+            if (person.tasks_claimed) roles.push(`任务 ${person.tasks_claimed}`);
+            if (person.task_comments) roles.push(`评论 ${person.task_comments}`);
+            if (person.review_comments) roles.push(`LGTM ${person.review_comments}`);
+
+            const meta = document.createElement('span');
+            meta.className = 'contributor-meta';
+            meta.textContent = roles.join(' · ') || '参与协作';
+            item.append(link, meta);
+            collaboratorList.append(item);
+          }
         }
 
         bookInfo.hidden = false;
@@ -1164,6 +1370,35 @@
         resizeTimer = setTimeout(refreshRenderedPages, 100);
       };
 
+      const syncInfoHeight = () => {
+        const height = Math.ceil(bookInfo.getBoundingClientRect().height);
+        if (height > 0) {
+          document.documentElement.style.setProperty('--info-height', `${height}px`);
+        }
+      };
+
+      const setInfoCollapsed = (collapsed, persist = true) => {
+        bookInfo.classList.toggle('collapsed', collapsed);
+        document.body.classList.toggle('info-expanded', !collapsed);
+        infoToggle.textContent = collapsed ? '展开数据' : '收起数据';
+        infoToggle.setAttribute('aria-expanded', String(!collapsed));
+        if (collapsed) {
+          chapterOverview.open = false;
+          contributorOverview.open = false;
+        }
+        if (persist) {
+          try {
+            localStorage.setItem('book-info-expanded', String(!collapsed));
+          } catch (error) {
+            console.warn('无法保存数据栏展开状态', error);
+          }
+        }
+        requestAnimationFrame(() => {
+          syncInfoHeight();
+          schedulePageRefresh();
+        });
+      };
+
       const setZoom = factor => {
         zoomFactor = Math.min(2.5, Math.max(0.75, factor));
         schedulePageRefresh();
@@ -1256,6 +1491,19 @@
       zoomOut.addEventListener('click', () => stepZoom(-1));
       zoomIn.addEventListener('click', () => stepZoom(1));
       zoomReset.addEventListener('click', () => setZoom(1));
+      infoToggle.addEventListener('click', () => {
+        setInfoCollapsed(!bookInfo.classList.contains('collapsed'));
+      });
+      chapterOverview.addEventListener('toggle', () => {
+        if (chapterOverview.open) {
+          contributorOverview.open = false;
+        }
+      });
+      contributorOverview.addEventListener('toggle', () => {
+        if (contributorOverview.open) {
+          chapterOverview.open = false;
+        }
+      });
 
       window.addEventListener('wheel', event => {
         if (!(event.ctrlKey || event.metaKey) || window.innerWidth < 1024) {
@@ -1294,6 +1542,7 @@
             schedulePageRefresh();
           }
         }).observe(document.querySelector('main'));
+        new ResizeObserver(syncInfoHeight).observe(bookInfo);
       }
 
       window.addEventListener('scroll', () => {
@@ -1305,6 +1554,14 @@
           updateCurrentPageFromScroll();
         });
       }, { passive: true });
+
+      let expandBookInfo = false;
+      try {
+        expandBookInfo = localStorage.getItem('book-info-expanded') === 'true';
+      } catch (error) {
+        console.warn('无法读取数据栏展开状态', error);
+      }
+      setInfoCollapsed(!expandBookInfo, false);
 
       loadBookInfo();
       loadPdf();

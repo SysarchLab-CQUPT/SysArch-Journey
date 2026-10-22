@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  issues: read
   pages: write
   id-token: write
 
@@ -21,6 +22,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Synchronize generated chapter metadata
         run: |
@@ -54,6 +57,8 @@ jobs:
           SITE_DIR: ${{ runner.temp }}/pdf-pages
           PDFJS_ARCHIVE: ${{ runner.temp }}/pdfjs-dist-3.11.174.tgz
           PDFJS_EXTRACT: ${{ runner.temp }}/pdfjs-dist
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           mkdir -p "$SITE_DIR"
           cp build/main.pdf "$SITE_DIR/main.pdf"
