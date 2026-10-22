@@ -117,10 +117,18 @@
     % 章标题下加一条装饰线；同时标记"这是章首页"，供页边装饰使用。
     aftertitle={\par\vspace{.7em}{\color{Accent}\rule{34mm}{1.2pt}}\global\BookChapterPagetrue},
   },
-  section={format=\large\bfseries\sffamily\color{Brand}, beforeskip=1.1\baselineskip, afterskip=.45\baselineskip},
+  section={
+    format=\large\bfseries\sffamily\color{Brand},
+    beforeskip=1.1\baselineskip,
+    afterskip=.45\baselineskip,
+  },
   subsection={format=\normalsize\bfseries\sffamily, beforeskip=.85\baselineskip, afterskip=.3\baselineskip},
   subsubsection={format=\normalsize\bfseries, beforeskip=.5\baselineskip, afterskip=.2\baselineskip},
 }
+
+% 每节都从新页开始。分页发生在节标题输出之前，并会先清空待排浮动体；
+% 因此章标题也独占首页，本章第一节同样从新页开始。
+\AddToHook{cmd/section/before}{\clearpage}
 
 % ============ 写作辅助宏 ============
 % 要点框：\KeyPoint{标题}{说明}

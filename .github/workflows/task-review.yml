@@ -27,10 +27,20 @@ jobs:
             const issue = context.payload.issue;
             const currentComment = context.payload.comment;
             const command = currentComment.body.trim();
+            const lgtmReviewLevel = body => {
+              const text = (body || '').trim();
+              const match = text.match(/^LGTM(?=$|[\s:：,，.!！。;；\-—]+)/i);
+              if (!match) {
+                return null;
+              }
+              const suggestion = text.slice(match[0].length).match(/[\p{L}\p{N}]/gu) || [];
+              return suggestion.length >= 8 ? 'suggestion' : 'plain';
+            };
             if (issue.pull_request || !/^\[TASK\]\s+\S/.test(issue.title)) {
               return;
             }
-            if (command.toLowerCase() !== '/complete' && command.toUpperCase() !== 'LGTM') {
+            const isComplete = command.toLowerCase() === '/complete';
+            if (!isComplete && !lgtmReviewLevel(currentComment.body)) {
               return;
             }
 
@@ -83,7 +93,7 @@ jobs:
               }
 
               const marker = `<!-- task-review:pending executor=${actor} -->`;
-              await reply(`${marker}\n@${actor} 已提交任务，请至少 3 位不同用户分别评论 \`LGTM\`。执行人自己的意见不计票。`);
+              await reply(`${marker}\n@${actor} 已提交任务，请至少 3 位不同用户分别评论 \`LGTM\`。可在 \`LGTM\` 后附具体修改建议；执行人自己的意见不计票。`);
               return;
             }
 
@@ -99,7 +109,7 @@ jobs:
             const eligibleVotes = comments.slice(reviewStart + 1).filter(comment =>
               comment.user?.type !== 'Bot' &&
               !sameUser(comment.user.login, executor) &&
-              comment.body.trim().toUpperCase() === 'LGTM'
+              lgtmReviewLevel(comment.body)
             );
             const reviewers = new Map();
             for (const vote of eligibleVotes) {

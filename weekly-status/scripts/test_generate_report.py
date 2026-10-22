@@ -139,6 +139,22 @@ class ReportTest(unittest.TestCase):
         self.assertEqual(events, [("提交验收", "alice"), ("有效LGTM", "bob")])
         self.assertEqual(lgtm_count, 1)
 
+    def test_lgtm_with_a_substantive_suggestion_counts_as_a_review_vote(self):
+        comments = [
+            comment("<!-- task-review:pending executor=alice -->", id=1),
+            comment("LGTM：建议补充图 4 的引用，并说明实验步骤。", "bob", user_type="User", id=2),
+            comment("LGTM 很好", "carol", user_type="User", id=3),
+        ]
+        events, _, _, lgtm_count = report.analyze_comments(comments, START, END)
+        self.assertEqual(events, [("提交验收", "alice"), ("有效LGTM", "bob"), ("有效LGTM", "carol")])
+        self.assertEqual(lgtm_count, 2)
+        self.assertEqual(report.lgtm_credit_level("LGTM"), "plain")
+        self.assertEqual(
+            report.lgtm_credit_level("LGTM：建议补充图 4 的引用，并说明实验步骤。"),
+            "suggestion",
+        )
+        self.assertIsNone(report.lgtm_credit_level("Good LGTM"))
+
     def test_effective_lgtm_progress_from_zero_through_three(self):
         for expected in range(4):
             with self.subTest(expected=expected):
@@ -208,6 +224,135 @@ class ReportTest(unittest.TestCase):
         self.assertEqual(report.format_days(1.26), "1.3")
         self.assertEqual(report.format_days(0.5), "0.5")
 
+    def test_score_report_tracks_cumulative_and_weekly_points(self):
+        current = issue(
+            1,
+            state="closed",
+            created_at="2026-08-25T00:00:00Z",
+            closed_at="2026-09-04T00:00:00Z",
+            body=CHAPTER_BODY,
+            assignees=[{"login": "alice"}],
+        )
+        previous = issue(
+            2,
+            state="closed",
+            created_at="2026-08-17T00:00:00Z",
+            closed_at="2026-08-20T00:00:00Z",
+            body=CHAPTER_BODY,
+            assignees=[{"login": "alice"}],
+        )
+        shared = issue(
+            3,
+            state="closed",
+            created_at="2026-08-31T00:00:00Z",
+            closed_at="2026-09-06T00:00:00Z",
+            body=CHAPTER_BODY,
+            assignees=[{"login": "alice"}, {"login": "bob"}],
+        )
+        outside_week = issue(
+            4,
+            state="closed",
+            created_at="2026-09-01T00:00:00Z",
+            closed_at="2026-09-08T00:00:00Z",
+            body=CHAPTER_BODY,
+            assignees=[{"login": "alice"}],
+        )
+        comments = {
+            1: [
+                comment(
+                    "<!-- task-assignment:resolved claimant=alice -->\n认领已确认：@alice 现为该任务的执行人。",
+                    created_at="2026-08-31T00:00:00Z",
+                )
+            ]
+        }
+
+        text = report.build_score_report(
+            [current, previous, shared, outside_week],
+            comments,
+            START,
+            END,
+            modules=[CHAPTER],
+        )
+
+        self.assertIn("# 人员积分统计：2026-08-31", text)
+        self.assertIn("| 1 | @alice | 10 | 0 | 0 | 10 | 7 | 3 | 0 | 0 | 0 | 2026-09-06 |", text)
+        self.assertIn("| 2 | @creator | 0 | 0 | 3.2 | 3.2 | 1.6 | 0 | 0 | 0 | 4 | 2026-09-01 |", text)
+        self.assertIn("| 3 | @bob | 3 | 0 | 0 | 3 | 3 | 1 | 0 | 0 | 0 | 2026-09-06 |", text)
+        self.assertIn("| 合计（人次） | - | 13 | 0 | 3.2 | 16.2 | 11.6 | 4 | 0 | 0 | 4 | - |", text)
+        self.assertNotIn("| [#4](https://example.test/4) | Test | @alice |", text)
+        self.assertIn("| 每人积分（天） |", text)
+
+    def test_score_report_marks_completed_tasks_without_a_named_executor(self):
+        task = issue(
+            7,
+            state="closed",
+            created_at="2026-08-31T00:00:00Z",
+            closed_at="2026-09-02T00:00:00Z",
+            body=CHAPTER_BODY,
+        )
+        text = report.build_score_report([task], {}, START, END, modules=[CHAPTER])
+        self.assertIn("| 1 | @creator | 0 | 0 | 0.8 | 0.8 | 0.8 | 0 | 0 | 0 | 1 |", text)
+        self.assertIn("有 1 个已完成任务未能确定执行人，共 2 天积分未计入个人排名。", text)
+
+    def test_score_report_awards_lgtm_review_and_task_publication_points(self):
+        task = issue(
+            8,
+            state="open",
+            created_at="2026-08-20T00:00:00Z",
+            body=CHAPTER_BODY,
+        )
+        comments = [
+            comment("<!-- task-review:pending executor=dave -->", created_at="2026-09-01T00:00:00Z", id=1),
+            comment("LGTM", "alice", "2026-09-01T01:00:00Z", "User", id=2),
+            comment(
+                "LGTM：建议补充图 4 的引用，并说明实验步骤。",
+                "bob",
+                "2026-09-02T00:00:00Z",
+                "User",
+                id=3,
+            ),
+            comment(
+                "LGTM：建议补充图 4 的引用，并说明实验步骤。",
+                "alice",
+                "2026-09-03T00:00:00Z",
+                "User",
+                id=4,
+            ),
+            comment("LGTM 很好", "carol", "2026-09-04T00:00:00Z", "User", id=5),
+            comment("<!-- task-review:resolved executor=dave -->", created_at="2026-09-05T00:00:00Z", id=6),
+        ]
+
+        text = report.build_score_report([task], {8: comments}, START, END, modules=[CHAPTER])
+
+        self.assertIn("| 1 | @creator | 0 | 0 | 0.8 | 0.8 | 0 | 0 | 0 | 0 | 1 | 2026-08-20 |", text)
+        self.assertIn("| 2 | @alice | 0 | 0.5 | 0 | 0.5 | 0.5 | 0 | 1 | 1 | 0 | 2026-09-03 |", text)
+        self.assertIn("| 3 | @bob | 0 | 0.5 | 0 | 0.5 | 0.5 | 0 | 1 | 1 | 0 | 2026-09-02 |", text)
+        self.assertIn("| 4 | @carol | 0 | 0.2 | 0 | 0.2 | 0.2 | 0 | 1 | 0 | 0 | 2026-09-04 |", text)
+        self.assertIn("| 合计（人次） | - | 0 | 1.2 | 0.8 | 2 | 1.2 | 0 | 3 | 2 | 1 | - |", text)
+        self.assertIn("LGTM + 修改建议", text)
+        self.assertIn("单独 LGTM", text)
+
+    def test_suggestion_upgrade_only_adds_the_weekly_point_difference(self):
+        task = issue(
+            9,
+            state="open",
+            created_at="2026-08-20T00:00:00Z",
+            body=CHAPTER_BODY,
+        )
+        comments = [
+            comment("<!-- task-review:pending executor=dave -->", created_at="2026-08-30T00:00:00Z", id=1),
+            comment("LGTM", "alice", "2026-08-30T01:00:00Z", "User", id=2),
+            comment(
+                "LGTM：建议补充图 4 的引用，并说明实验步骤。",
+                "alice",
+                "2026-09-01T00:00:00Z",
+                "User",
+                id=3,
+            ),
+        ]
+        text = report.build_score_report([task], {9: comments}, START, END, modules=[CHAPTER])
+        self.assertIn("| 2 | @alice | 0 | 0.5 | 0 | 0.5 | 0.3 | 0 | 1 | 1 | 0 |", text)
+
     def test_module_labels_resolve_to_chapter_paths(self):
         modules = report.repo_modules()
         self.assertIn(CHAPTER, modules)
@@ -273,7 +418,7 @@ class ReportTest(unittest.TestCase):
         self.assertNotIn("[#1]", text)
         self.assertNotIn("[#2]", text)
 
-    def test_main_fetches_comments_only_for_selected_tasks_with_comments(self):
+    def test_main_fetches_comments_for_all_tasks_needed_by_scores(self):
         class Client:
             calls = []
 
@@ -290,16 +435,25 @@ class ReportTest(unittest.TestCase):
                     ]
                 if path.endswith("/issues/1/comments"):
                     return []
+                if path.endswith("/issues/2/comments"):
+                    return []
                 raise AssertionError("unexpected comment request: " + path)
 
         with TemporaryDirectory() as temporary, mock.patch.dict(os.environ, {"GH_TOKEN": "token"}, clear=False), \
                 mock.patch.object(report, "GitHubClient", Client), \
                 mock.patch.object(report, "repo_modules", return_value=[]):
             report.main(["--repo", "org/repo", "--week-start", "2026-08-31", "--output-dir", temporary])
+            weekly_path = Path(temporary) / "2026-08-31.md"
+            score_path = Path(temporary) / "scores" / "2026-08-31.md"
+            self.assertTrue(weekly_path.is_file())
+            self.assertTrue(score_path.is_file())
+            self.assertNotIn("人员积分统计", weekly_path.read_text(encoding="utf-8"))
+            self.assertIn("# 人员积分统计：2026-08-31", score_path.read_text(encoding="utf-8"))
 
         self.assertEqual(Client.calls, [
             ("/repos/org/repo/issues", {"state": "all"}),
             ("/repos/org/repo/issues/1/comments", None),
+            ("/repos/org/repo/issues/2/comments", None),
         ])
 
     def test_api_failure_does_not_create_report(self):

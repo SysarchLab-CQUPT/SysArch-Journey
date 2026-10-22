@@ -20,11 +20,17 @@ scripts/build.sh
 # 只编译某一章（写作时常用，速度快）→ build/04-processor-core/chapter.pdf
 scripts/build.sh chapters/04-processor-core/chapter.tex
 
+# 只编译某一节 → build/04-processor-core/sections/04-pipeline.pdf
+scripts/build.sh chapters/04-processor-core/04-pipeline.tex
+
 # 清掉全部编译产物，只留源码
 scripts/clean.sh
 ```
 
 Windows 用 `.\scripts\build.ps1`、`.\scripts\clean.ps1`，参数相同。
+
+单节编译会载入全书的公共前言、当前章号和该节原本的节号，但不会载入本章其它节，
+因此指向其它节或其它章的交叉引用可能显示为未解析。最终提交前仍应完整编译全书。
 
 **编译产物只会出现在 `build/` 里**，仓库的其它目录都只放源码。编译之后请确认
 `build/main.log` 中没有 `! ` 开头的错误、没有 undefined reference。
@@ -39,13 +45,13 @@ Windows 用 `.\scripts\build.ps1`、`.\scripts\clean.ps1`，参数相同。
 | ② 认领 | 你 | 在 Issue 下评论 `/assign` |
 | ③ 确认 | 任务发布者 | 回复 `/confirm`，你自动成为 Assignee |
 | ④ 交付 | 你 | 完成后评论 `/complete` 发起复核 |
-| ⑤ 复核 | 其他成员 | 3 位不同成员分别评论 `LGTM`，通过后 Issue 自动关闭 |
+| ⑤ 复核 | 其他成员 | 3 位不同成员分别评论 `LGTM`（可附修改建议），通过后 Issue 自动关闭 |
 
 几个要知道的规则：
 
 - 认领后如果 2 小时内没被确认，机器人会再提醒发布者一次，你不用催。
 - 截止时间（DDL）前 12 小时，机器人会 @ 你提醒。
-- 复核要凑够 3 个不同的人，自己投的 `LGTM` 不计票。
+- 复核要凑够 3 个不同的人，自己投的 `LGTM` 不计票；可在 `LGTM` 后附具体修改建议。
 - 任务 Issue 被手动提前关闭会自动重新打开，必须走完复核。
 - 你必须是仓库协作者，否则第三步会失败（机器人会提示无法设为 Assignee）。
 
@@ -85,7 +91,7 @@ Windows 用 `.\scripts\build.ps1`、`.\scripts\clean.ps1`，参数相同。
 │   └── code/                附录的代码（例如示例程序）
 ├── styles/                  排版样式（改动需主编确认）
 ├── scripts/                 构建、清理与结构维护脚本
-├── weekly-status/           每周任务周报（生成脚本，报告会提交到这里）
+├── weekly-status/           每周任务周报与独立人员积分快照（自动提交）
 └── build/                   编译产物（唯一）：main.pdf、main.log 等
 ```
 
@@ -231,6 +237,12 @@ scripts/build.sh                      # 清单会自动更新
 每周日晚上 19:00（北京时间）自动生成当周的任务周报，提交到 `weekly-status/`，
 同时显示在 Actions 的运行摘要里。报告里能看到各模块的任务数、交付情况、每位成员的
 交付明细，以及每项任务的完成用时（天）。
+
+同一次生成还会在 `weekly-status/scores/` 下写出一份独立的人员积分文档：累计任务完成、
+验收评论和任务发布三类积分，同时列出本周新增积分。任务完成按实际天数计算，多人共同
+认领时平均分配；单独 `LGTM` 记 0.2 天，带有效修改建议的 `LGTM` 记 0.5 天，每发布一个
+任务记 0.8 天。同一人对同一任务只取最高档。这份积分统计不会并入周报正文，但会和周报
+一起提交。
 
 周日晚 19:00 之后完成的交付不在这份报告里；周一再手动触发一次会覆盖同一份文件，
 把数据补齐。

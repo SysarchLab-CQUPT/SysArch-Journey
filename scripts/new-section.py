@@ -105,7 +105,8 @@ def main():
     print("已新增 chapters/%s/%s.tex" % (chapter_dir.name, stem))
     print("本节素材目录（用到时再建）：chapters/%s/figures/%s/ 与 chapters/%s/code/%s/"
           % (chapter_dir.name, stem, chapter_dir.name, stem))
-    print("下一步：scripts/build.sh chapters/%s/chapter.tex 预览本章" % chapter_dir.name)
+    print("单节预览：scripts/build.sh chapters/%s/%s.tex" % (chapter_dir.name, stem))
+    print("整章预览：scripts/build.sh chapters/%s/chapter.tex" % chapter_dir.name)
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@
 #
 #   .\scripts\build.ps1                                    构建全书 → build\main.pdf
 #   .\scripts\build.ps1 chapters\03-riscv-isa\chapter.tex   只编译单章（预览用）
+#   .\scripts\build.ps1 chapters\03-riscv-isa\02-role.tex   只编译单节（预览用）
 #
 # 产物统一写在 build\ 下，仓库其它位置不会出现编译文件。
 # 需要 TeX Live（xelatex，建议同时安装 latexmk）。
@@ -17,17 +18,37 @@ if (-not (Get-Command xelatex -ErrorAction SilentlyContinue)) {
 }
 
 function Invoke-Compile {
-    param([string]$WorkDir, [string]$File, [string]$OutDir)
+    param([string]$WorkDir, [string]$File, [string]$OutDir, [string]$JobName = '')
     New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
     Push-Location -LiteralPath $WorkDir
     try {
+        $latexmkArgs = @(
+            '-xelatex',
+            '-interaction=nonstopmode',
+            '-halt-on-error',
+            '-file-line-error',
+            "-outdir=$OutDir"
+        )
+        $xelatexArgs = @(
+            '-interaction=nonstopmode',
+            '-halt-on-error',
+            '-file-line-error',
+            "-output-directory=$OutDir"
+        )
+        if ($JobName) {
+            $latexmkArgs += "-jobname=$JobName"
+            $xelatexArgs += "-jobname=$JobName"
+        }
+        $latexmkArgs += $File
+        $xelatexArgs += $File
+
         if (Get-Command latexmk -ErrorAction SilentlyContinue) {
-            & latexmk -xelatex -interaction=nonstopmode -halt-on-error -file-line-error -outdir=$OutDir $File
+            & latexmk @latexmkArgs
             if ($LASTEXITCODE -ne 0) { throw "latexmk 编译失败（退出码 $LASTEXITCODE）。" }
         } else {
             Write-Warning '未找到 latexmk，改用 xelatex 直接编译（需要多跑几遍）。'
             foreach ($pass in 1..3) {
-                & xelatex -interaction=nonstopmode -halt-on-error -file-line-error -output-directory=$OutDir $File
+                & xelatex @xelatexArgs
                 if ($LASTEXITCODE -ne 0) { throw "xelatex 第 $pass 遍失败（退出码 $LASTEXITCODE）。" }
             }
         }
@@ -48,11 +69,62 @@ if ($Target -eq 'main.tex') {
     Invoke-Compile -WorkDir $Root -File 'main.tex' -OutDir (Join-Path $Root 'build')
     Write-Output '全书 PDF：build\main.pdf'
 } else {
-    # 单章预览：按 subfiles 的约定，必须在章目录内编译。
+    if (-not (Test-Path -LiteralPath $Target -PathType Leaf)) {
+        throw "找不到目标文件：$Target"
+    }
+
     $chapterDir = Split-Path -Parent $Target
     $name = Split-Path -Leaf $chapterDir
-    $outDir = Join-Path (Join-Path $Root 'build') $name
-    Invoke-Compile -WorkDir (Join-Path $Root $chapterDir) -File (Split-Path -Leaf $Target) -OutDir $outDir
-    $base = [IO.Path]::GetFileNameWithoutExtension($Target)
-    Write-Output "单章 PDF：build\$name\$base.pdf"
+    $file = Split-Path -Leaf $Target
+
+    if (-not (Test-Path -LiteralPath (Join-Path $chapterDir 'chapter.tex') -PathType Leaf)) {
+        throw "目标不在有效章节目录中，缺少 $chapterDir\chapter.tex。"
+    }
+
+    if ($file -eq 'chapter.tex') {
+        # 单章预览：按 subfiles 的约定，必须在章目录内编译。
+        $outDir = Join-Path (Join-Path $Root 'build') $name
+        Invoke-Compile -WorkDir (Join-Path $Root $chapterDir) -File $file -OutDir $outDir
+        Write-Output "单章 PDF：build\$name\chapter.pdf"
+    } else {
+        # 单节预览：临时生成一个最小 subfiles 包装器，载入全书前言和本章单节。
+        $base = [IO.Path]::GetFileNameWithoutExtension($file)
+        $chapterToken = ($name -split '-')[0]
+        $sectionToken = ($base -split '-')[0]
+        $chapterNumber = 0
+        $sectionNumber = 0
+
+        if ($chapterToken -match '^\d+$') {
+            $chapterNumber = [int]$chapterToken
+        }
+        if ($sectionToken -match '^\d+$') {
+            $sectionNumber = [int]$sectionToken
+            if ($sectionNumber -gt 0) { $sectionNumber -= 1 }
+        }
+
+        $previewFile = Join-Path $chapterDir ".section-preview.$([guid]::NewGuid().ToString('N')).tex"
+        try {
+            $content = @"
+\documentclass[../../main.tex]{subfiles}
+\begin{document}
+\setcounter{chapter}{$chapterNumber}
+\setcounter{section}{$sectionNumber}
+\markboth{单节预览}{}
+\input{$file}
+\end{document}
+"@
+            [IO.File]::WriteAllText(
+                $previewFile,
+                $content,
+                [Text.UTF8Encoding]::new($false)
+            )
+
+            $outDir = Join-Path (Join-Path (Join-Path $Root 'build') $name) 'sections'
+            Invoke-Compile -WorkDir (Join-Path $Root $chapterDir) -File (Split-Path -Leaf $previewFile) -OutDir $outDir -JobName $base
+        } finally {
+            Remove-Item -LiteralPath $previewFile -Force -ErrorAction SilentlyContinue
+        }
+
+        Write-Output "单节 PDF：build\$name\sections\$base.pdf"
+    }
 }

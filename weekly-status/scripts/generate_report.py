@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a Beijing-time weekly task report from GitHub Issues."""
+"""Generate a Beijing-time weekly report and a separate contributor score snapshot."""
 
 import argparse
 import json
@@ -20,6 +20,10 @@ BOT_LOGIN = "github-actions[bot]"
 ASSIGNMENT_MARKER = re.compile(r"<!--\s*task-assignment:(pending|resolved|failed) claimant=([A-Za-z0-9-]+)\s*-->")
 REVIEW_MARKER = re.compile(r"<!--\s*task-review:(pending|resolved) executor=([A-Za-z0-9-]+)\s*-->")
 DDL = re.compile(r"^(\d{4})-(\d{2})-(\d{2}) ((?:[01]\d|2[0-3]):[0-5]\d|24:00)$")
+LGTM_POINTS = 0.2
+LGTM_SUGGESTION_POINTS = 0.5
+TASK_PUBLISH_POINTS = 0.8
+MIN_SUGGESTION_CHARACTERS = 8
 
 # 任务模板里的归属字段，以及生成报告时要一并检查的必填项。
 MODULE_SECTION = "所属模块"
@@ -183,7 +187,7 @@ def analyze_comments(comments, start, end):
 
         user = comment.get("user") or {}
         login = user.get("login")
-        is_lgtm = (comment.get("body") or "").strip().upper() == "LGTM"
+        is_lgtm = lgtm_credit_level(comment.get("body")) is not None
         if review_state == "pending" and is_lgtm and login and user.get("type") != "Bot" and login.lower() != executor.lower():
             key = login.lower()
             if key not in reviewers:
@@ -218,6 +222,79 @@ def format_days(value):
     if value is None:
         return "-"
     return ("%.1f" % value).rstrip("0").rstrip(".") or "0"
+
+
+def score_recipients(issue, comments, start, end):
+    """Return people receiving task credit.
+
+    Normally the Issue assignees receive credit. For legacy tasks without an
+    assignee, fall back to the executor recorded by the review workflow.
+    """
+    assignees = sorted(
+        {
+            user["login"] for user in issue.get("assignees", [])
+            if user.get("login") and user.get("type") != "Bot"
+        },
+        key=str.lower,
+    )
+    if assignees:
+        return assignees
+    _, _, executor, _ = analyze_comments(comments, start, end)
+    return [executor] if executor else []
+
+
+def lgtm_credit_level(body):
+    """Classify an LGTM review comment as plain or containing substantive advice."""
+    text = (body or "").strip()
+    match = re.match(r"^LGTM(?=$|[\s:：,，.!！。;；\-—]+)", text, re.IGNORECASE)
+    if not match:
+        return None
+    suggestion = "".join(character for character in text[match.end():] if character.isalnum())
+    if len(suggestion) >= MIN_SUGGESTION_CHARACTERS:
+        return "suggestion"
+    return "plain"
+
+
+def review_credits(comments, cutoff):
+    """Return the highest LGTM credit per reviewer/task before ``cutoff``."""
+    credits = {}
+    review_state = None
+    executor = None
+    for comment in sort_comments(comments):
+        created_at = comment.get("created_at")
+        if not created_at:
+            continue
+        created = parse_github_time(created_at)
+        if created >= cutoff:
+            continue
+
+        review = marker(comment, REVIEW_MARKER)
+        if review:
+            review_state, executor = review.group(1), review.group(2)
+            continue
+        if review_state != "pending":
+            continue
+
+        user = comment.get("user") or {}
+        login = user.get("login")
+        if not login or user.get("type") == "Bot":
+            continue
+        if executor and login.lower() == executor.lower():
+            continue
+
+        level = lgtm_credit_level(comment.get("body"))
+        if level is None:
+            continue
+        key = login.lower()
+        previous = credits.get(key)
+        if previous is None or level == "suggestion":
+            credits[key] = {
+                "login": login,
+                "created_at": created,
+                "level": level,
+                "points": LGTM_SUGGESTION_POINTS if level == "suggestion" else LGTM_POINTS,
+            }
+    return credits
 
 
 def is_task(issue):
@@ -256,6 +333,299 @@ def week_reasons(issue, start, end):
 
 def module_url(path, repo):
     return "https://github.com/%s/tree/HEAD/%s" % (repo, quote(path))
+
+
+def build_score_report(issues, comments_by_issue, start, end, repo="owner/repo", modules=None):
+    """Build a standalone snapshot of completion, review and publication points."""
+    module_list = repo_modules() if modules is None else modules
+    people = defaultdict(lambda: {
+        "completion": 0.0,
+        "completion_weekly": 0.0,
+        "completed_count": 0,
+        "completed_weekly_count": 0,
+        "review": 0.0,
+        "review_weekly": 0.0,
+        "lgtm_count": 0,
+        "lgtm_weekly_count": 0,
+        "suggestion_count": 0,
+        "suggestion_weekly_count": 0,
+        "publish": 0.0,
+        "publish_weekly": 0.0,
+        "publish_count": 0,
+        "publish_weekly_count": 0,
+        "last": None,
+    })
+    completion_details = []
+    review_details = []
+    publish_details = []
+    seen = set()
+    unassigned_points = 0.0
+    unassigned_count = 0
+
+    def person_record(login, when=None):
+        record = people[login]
+        if when is not None and (record["last"] is None or when > record["last"]):
+            record["last"] = when
+        return record
+
+    for issue in issues:
+        number = issue.get("number")
+        if number in seen or not is_task(issue):
+            continue
+        seen.add(number)
+
+        created_at = parse_github_time(issue["created_at"]) if issue.get("created_at") else None
+        if created_at and created_at < end:
+            publisher_user = issue.get("user") or {}
+            publisher = publisher_user.get("login")
+            if publisher and publisher_user.get("type") != "Bot":
+                record = person_record(publisher, created_at)
+                record["publish"] += TASK_PUBLISH_POINTS
+                record["publish_count"] += 1
+                weekly = start <= created_at < end
+                if weekly:
+                    record["publish_weekly"] += TASK_PUBLISH_POINTS
+                    record["publish_weekly_count"] += 1
+                publish_details.append({
+                    "issue": issue,
+                    "publisher": publisher,
+                    "created_at": created_at,
+                    "weekly": weekly,
+                })
+
+        comments = comments_by_issue.get(number, [])
+        final_credits = review_credits(comments, end)
+        baseline_credits = review_credits(comments, start)
+        for key, credit in final_credits.items():
+            record = person_record(credit["login"], credit["created_at"])
+            record["review"] += credit["points"]
+            record["lgtm_count"] += 1
+            if credit["level"] == "suggestion":
+                record["suggestion_count"] += 1
+
+            baseline = baseline_credits.get(key)
+            baseline_points = baseline["points"] if baseline else 0.0
+            weekly_points = max(0.0, credit["points"] - baseline_points)
+            if weekly_points:
+                record["review_weekly"] += weekly_points
+                record["lgtm_weekly_count"] += 1
+                if credit["level"] == "suggestion":
+                    record["suggestion_weekly_count"] += 1
+            review_details.append({
+                "issue": issue,
+                "login": credit["login"],
+                "created_at": credit["created_at"],
+                "level": credit["level"],
+                "points": credit["points"],
+                "weekly_points": weekly_points,
+            })
+
+        if issue.get("state") != "closed" or not issue.get("closed_at"):
+            continue
+
+        closed_at = parse_github_time(issue["closed_at"])
+        if closed_at >= end:
+            continue
+        days = completion_days(issue, comments)
+        if days is None:
+            continue
+
+        weekly = start <= closed_at < end
+        recipients = score_recipients(issue, comments, start, end)
+        if not recipients:
+            unassigned_points += days
+            unassigned_count += 1
+            continue
+
+        share = days / len(recipients)
+        module, module_path = resolve_module(
+            issue_section(issue.get("body") or "", MODULE_SECTION),
+            module_list,
+        )
+        for login in recipients:
+            record = person_record(login, closed_at)
+            record["completion"] += share
+            record["completed_count"] += 1
+            if weekly:
+                record["completion_weekly"] += share
+                record["completed_weekly_count"] += 1
+
+        completion_details.append({
+            "issue": issue,
+            "module": module,
+            "module_path": module_path,
+            "closed_at": closed_at,
+            "days": days,
+            "share": share,
+            "recipients": recipients,
+            "weekly": weekly,
+        })
+
+    ranked_people = sorted(
+        people.items(),
+        key=lambda item: (
+            -(item[1]["completion"] + item[1]["review"] + item[1]["publish"]),
+            item[0].lower(),
+        ),
+    )
+    summary_rows = []
+    for rank, (login, record) in enumerate(ranked_people, 1):
+        last = record["last"].date().isoformat() if record["last"] else "-"
+        total = record["completion"] + record["review"] + record["publish"]
+        weekly = record["completion_weekly"] + record["review_weekly"] + record["publish_weekly"]
+        summary_rows.append(
+            "| %d | @%s | %s | %s | %s | %s | %s | %d | %d | %d | %d | %s |" % (
+                rank,
+                login,
+                format_days(record["completion"]),
+                format_days(record["review"]),
+                format_days(record["publish"]),
+                format_days(total),
+                format_days(weekly),
+                record["completed_count"],
+                record["lgtm_count"],
+                record["suggestion_count"],
+                record["publish_count"],
+                last,
+            )
+        )
+
+    total_completion = sum(record["completion"] for _, record in ranked_people)
+    total_review = sum(record["review"] for _, record in ranked_people)
+    total_publish = sum(record["publish"] for _, record in ranked_people)
+    total_points = total_completion + total_review + total_publish
+    total_weekly = sum(
+        record["completion_weekly"] + record["review_weekly"] + record["publish_weekly"]
+        for _, record in ranked_people
+    )
+    total_completed = sum(record["completed_count"] for _, record in ranked_people)
+    total_lgtm = sum(record["lgtm_count"] for _, record in ranked_people)
+    total_suggestions = sum(record["suggestion_count"] for _, record in ranked_people)
+    total_published = sum(record["publish_count"] for _, record in ranked_people)
+    summary_table = (
+        "| 排名 | 人员 | 完成积分 | LGTM积分 | 发布积分 | 累计积分 | 本周新增 | "
+        "完成任务 | LGTM次数 | 含建议 | 发布任务 | 最近活动 |\n"
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n"
+        "| 合计（人次） | - | %s | %s | %s | %s | %s | %d | %d | %d | %d | - |\n%s"
+    ) % (
+        format_days(total_completion),
+        format_days(total_review),
+        format_days(total_publish),
+        format_days(total_points),
+        format_days(total_weekly),
+        total_completed,
+        total_lgtm,
+        total_suggestions,
+        total_published,
+        "\n".join(summary_rows),
+    )
+    if not summary_rows:
+        summary_table += "\n| - | 暂无积分记录 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | - |"
+
+    completion_rows = []
+    for task in sorted(completion_details, key=lambda item: item["issue"].get("number", 0)):
+        issue = task["issue"]
+        issue_link = "[#%s](%s)" % (issue.get("number"), issue.get("html_url", ""))
+        completion_rows.append(
+            "| %s | %s | %s | %s | %s | %s | %s |" % (
+                issue_link,
+                markdown_cell(re.sub(r"^\[TASK\]\s*", "", issue.get("title", ""))),
+                markdown_cell("、".join("@" + login for login in task["recipients"])),
+                markdown_cell(task["module"]),
+                task["closed_at"].date().isoformat(),
+                format_days(task["days"]),
+                format_days(task["share"]),
+            )
+        )
+    completion_table = (
+        "| Issue | 任务 | 计分人员 | 所属模块 | 完成日期 | 完成用时（天） | 每人积分（天） |\n"
+        "| --- | --- | --- | --- | --- | --- | --- |\n"
+        + ("\n".join(completion_rows) if completion_rows else "| - | 暂无已完成任务 | - | - | - | - | - |")
+    )
+
+    review_rows = []
+    level_labels = {"plain": "单独 LGTM", "suggestion": "LGTM + 修改建议"}
+    for credit in sorted(
+        review_details,
+        key=lambda item: (item["issue"].get("number", 0), item["login"].lower()),
+    ):
+        issue = credit["issue"]
+        issue_link = "[#%s](%s)" % (issue.get("number"), issue.get("html_url", ""))
+        review_rows.append(
+            "| %s | %s | @%s | %s | %s | %s | %s |" % (
+                issue_link,
+                markdown_cell(re.sub(r"^\[TASK\]\s*", "", issue.get("title", ""))),
+                credit["login"],
+                credit["created_at"].date().isoformat(),
+                level_labels[credit["level"]],
+                format_days(credit["points"]),
+                format_days(credit["weekly_points"]),
+            )
+        )
+    review_table = (
+        "| Issue | 任务 | 评论人 | 评论日期 | 奖励类型 | 积分（天） | 本周新增（天） |\n"
+        "| --- | --- | --- | --- | --- | --- | --- |\n"
+        + ("\n".join(review_rows) if review_rows else "| - | 暂无有效 LGTM | - | - | - | - | - |")
+    )
+
+    publish_rows = []
+    for item in sorted(publish_details, key=lambda value: value["issue"].get("number", 0)):
+        issue = item["issue"]
+        issue_link = "[#%s](%s)" % (issue.get("number"), issue.get("html_url", ""))
+        publish_rows.append(
+            "| %s | %s | @%s | %s | %s |" % (
+                issue_link,
+                markdown_cell(re.sub(r"^\[TASK\]\s*", "", issue.get("title", ""))),
+                item["publisher"],
+                item["created_at"].date().isoformat(),
+                format_days(TASK_PUBLISH_POINTS),
+            )
+        )
+    publish_table = (
+        "| Issue | 任务 | 发布者 | 发布日期 | 积分（天） |\n"
+        "| --- | --- | --- | --- | --- |\n"
+        + ("\n".join(publish_rows) if publish_rows else "| - | 暂无任务 | - | - | - |")
+    )
+
+    unassigned_note = ""
+    if unassigned_count:
+        unassigned_note = (
+            "\n\n有 %d 个已完成任务未能确定执行人，共 %s 天积分未计入个人排名。"
+            % (unassigned_count, format_days(unassigned_points))
+        )
+
+    header = (
+        "# 人员积分统计：%s\n\n"
+        "统计截至北京时间 %s 00:00（不含）。\n\n"
+        "积分规则：\n"
+        "1. 任务完成积分＝从认领确认（没有认领记录时从创建）到任务关闭的自然日用时；"
+        "多人共同认领时平均分配。\n"
+        "2. 单独评论 `LGTM` 记 %s 天；`LGTM` 后附至少 %d 个文字或数字的修改建议记 %s 天。"
+        "同一人对同一任务只取最高档，不重复计分。\n"
+        "3. 每发布一个 `[TASK]` Issue 记 %s 天，按发布时间计入。\n\n"
+        "累计积分包含截至统计时点的全部记录，本周新增只统计本周发生的完成、有效评论和任务发布。"
+        "该文档是独立快照，不计入同周周报正文；积分不等同于交付质量或工作效率评价。"
+        % (
+            start.date().isoformat(),
+            end.date().isoformat(),
+            format_days(LGTM_POINTS),
+            MIN_SUGGESTION_CHARACTERS,
+            format_days(LGTM_SUGGESTION_POINTS),
+            format_days(TASK_PUBLISH_POINTS),
+        )
+    )
+    return (
+        header
+        + "\n\n"
+        + summary_table
+        + "\n\n## 任务完成积分明细\n\n"
+        + completion_table
+        + "\n\n## 验收评论积分明细\n\n"
+        + review_table
+        + "\n\n## 任务发布积分明细\n\n"
+        + publish_table
+        + unassigned_note
+    )
 
 
 def build_report(issues, comments_by_issue, start, end, repo="owner/repo", modules=None, now=None):
@@ -390,18 +760,27 @@ def main(argv=None):
     week_start = args.week_start or default_week_start()
     start, end = week_range(week_start)
     client = GitHubClient(token)
-    issues = client.get_paginated("/repos/%s/issues" % args.repo, {"state": "all"})
+    all_issues = client.get_paginated("/repos/%s/issues" % args.repo, {"state": "all"})
+    all_issues = list({issue["number"]: issue for issue in all_issues}.values())
     # DDL is a body field, so updated-since filtering would miss old tasks due this week.
-    issues = list({issue["number"]: issue for issue in issues if week_reasons(issue, start, end)}.values())
+    issues = [issue for issue in all_issues if week_reasons(issue, start, end)]
+    comment_issues = {
+        issue["number"] for issue in all_issues
+        if is_task(issue) and issue.get("comments") != 0
+    }
     comments_by_issue = {}
-    for issue in issues:
-        if issue.get("comments") != 0:
+    for issue in all_issues:
+        if issue["number"] in comment_issues and issue.get("comments") != 0:
             comments_by_issue[issue["number"]] = client.get_paginated(
                 "/repos/%s/issues/%s/comments" % (args.repo, issue["number"]))
     report = build_report(issues, comments_by_issue, start, end, repo=args.repo)
+    score_report = build_score_report(all_issues, comments_by_issue, start, end, repo=args.repo)
     output = Path(args.output_dir) / (week_start.isoformat() + ".md")
+    score_output = Path(args.output_dir) / "scores" / (week_start.isoformat() + ".md")
     output.parent.mkdir(parents=True, exist_ok=True)
+    score_output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(report, encoding="utf-8")
+    score_output.write_text(score_report, encoding="utf-8")
     print(output)
 
 
