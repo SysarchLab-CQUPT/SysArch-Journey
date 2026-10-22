@@ -52,10 +52,34 @@ jobs:
       - name: Stage Pages site
         env:
           SITE_DIR: ${{ runner.temp }}/pdf-pages
+          PDFJS_BASE: https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174
         run: |
           mkdir -p "$SITE_DIR"
           cp build/main.pdf "$SITE_DIR/main.pdf"
           cp .github/pages/index.html "$SITE_DIR/index.html"
+          mkdir -p "$SITE_DIR/vendor/pdfjs"
+          curl -fsSL --retry 3 --retry-delay 2 \
+            "$PDFJS_BASE/build/pdf.min.js" \
+            -o "$SITE_DIR/vendor/pdfjs/pdf.min.js"
+          curl -fsSL --retry 3 --retry-delay 2 \
+            "$PDFJS_BASE/build/pdf.worker.min.js" \
+            -o "$SITE_DIR/vendor/pdfjs/pdf.worker.min.js"
+          curl -fsSL --retry 3 --retry-delay 2 \
+            "$PDFJS_BASE/LICENSE" \
+            -o "$SITE_DIR/vendor/pdfjs/LICENSE"
+          printf '%s  %s\n' \
+            '5b5799e6f8c680663207ac5b42ee14eed2a406fa7af48f50c154f0c0b1566946' \
+            "$SITE_DIR/vendor/pdfjs/pdf.min.js" | sha256sum -c -
+          printf '%s  %s\n' \
+            'feabdf309770ed24bba31a5467836cdc8cf639c705af27d52b585b041bb8527b' \
+            "$SITE_DIR/vendor/pdfjs/pdf.worker.min.js" | sha256sum -c -
+          printf '%s  %s\n' \
+            '0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594' \
+            "$SITE_DIR/vendor/pdfjs/LICENSE" | sha256sum -c -
+          test -s "$SITE_DIR/vendor/pdfjs/pdf.min.js"
+          test -s "$SITE_DIR/vendor/pdfjs/pdf.worker.min.js"
+          python3 scripts/build-site-info.py --output "$SITE_DIR/book-info.json"
+          test -s "$SITE_DIR/book-info.json"
           touch "$SITE_DIR/.nojekyll"
 
       - name: Upload Pages artifact
