@@ -14,6 +14,7 @@
       --panel: #f4f7fa;
       --muted: #667085;
       --paper: #ffffff;
+      --header-height: 67px;
     }
 
     * {
@@ -33,10 +34,14 @@
     }
 
     header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 18px;
+      min-height: var(--header-height);
       padding: 14px 22px;
       border-bottom: 1px solid var(--line);
       background: var(--paper);
@@ -45,6 +50,9 @@
     h1 {
       margin: 0 0 4px;
       font-size: 18px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .subtitle {
@@ -102,8 +110,8 @@
 
     .toolbar {
       position: sticky;
-      top: 0;
-      z-index: 10;
+      top: var(--header-height);
+      z-index: 25;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -351,20 +359,35 @@
       text-align: center;
     }
 
-    .stage {
-      display: flex;
-      justify-content: center;
+    .pdf-pages {
       width: 100%;
       max-width: 1080px;
       margin: 0 auto;
     }
 
-    canvas {
-      display: block;
-      max-width: 100%;
-      height: auto !important;
+    .pdf-page {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      aspect-ratio: 210 / 297;
+      margin: 0 0 14px;
+      overflow: hidden;
       background: var(--paper);
       box-shadow: 0 10px 32px rgb(23 50 77 / 16%);
+    }
+
+    .pdf-page canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: var(--paper);
+    }
+
+    .pdf-page-number {
+      color: var(--muted);
+      font-size: 13px;
     }
 
     .fallback {
@@ -383,6 +406,10 @@
     }
 
     @media (max-width: 640px) {
+      :root {
+        --header-height: 52px;
+      }
+
       header {
         align-items: flex-start;
         padding: 12px 14px;
@@ -440,6 +467,10 @@
 
       main {
         padding: 8px 6px 20px;
+      }
+
+      .pdf-page {
+        margin-bottom: 8px;
       }
     }
 
@@ -547,9 +578,7 @@
 
   <main>
     <div id="status" class="status" role="status">正在加载 PDF…</div>
-    <div class="stage">
-      <canvas id="pdf-canvas" aria-label="教材 PDF 页面"></canvas>
-    </div>
+    <div id="pdf-pages" class="pdf-pages" aria-label="教材 PDF 连续页面"></div>
     <div id="fallback" class="fallback" hidden>
       <p>当前浏览器未能加载内嵌预览。</p>
       <a class="download" href="main.pdf">打开或下载完整 PDF</a>
@@ -563,8 +592,7 @@
   <script src="vendor/pdfjs/pdf.min.js"></script>
   <script>
     (() => {
-      const canvas = document.getElementById('pdf-canvas');
-      const context = canvas.getContext('2d', { alpha: false });
+      const pagesContainer = document.getElementById('pdf-pages');
       const status = document.getElementById('status');
       const fallback = document.getElementById('fallback');
       const previousButton = document.getElementById('previous-page');
@@ -583,9 +611,11 @@
 
       let pdfDocument = null;
       let currentPage = 1;
-      let renderTask = null;
-      let renderSequence = 0;
       let resizeTimer = null;
+      let currentPageFrame = null;
+      let renderObserver = null;
+      let releaseObserver = null;
+      const pageStates = new Map();
 
       const formatWordCount = value => {
         if (!Number.isFinite(value)) {
@@ -705,10 +735,9 @@
           const pageIndex = Number.isInteger(pageReference)
             ? pageReference
             : await pdfDocument.getPageIndex(pageReference);
-          await renderPage(pageIndex + 1);
+          scrollToPage(pageIndex + 1, 'auto');
           closeToc();
           tocToggle.focus();
-          window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch (error) {
           console.warn('目录跳转失败', error);
         }
@@ -773,62 +802,187 @@
         progressTrack.setAttribute('aria-valuenow', String(progress));
       };
 
-      const renderPage = async number => {
-        if (!pdfDocument || number < 1 || number > pdfDocument.numPages) {
+      const createPageElements = () => {
+        pagesContainer.textContent = '';
+        pageStates.clear();
+        const fragment = document.createDocumentFragment();
+        for (let number = 1; number <= pdfDocument.numPages; number++) {
+          const container = document.createElement('section');
+          container.className = 'pdf-page';
+          container.dataset.page = String(number);
+          container.setAttribute('aria-label', `第 ${number} 页`);
+
+          const label = document.createElement('span');
+          label.className = 'pdf-page-number';
+          label.textContent = `第 ${number} 页`;
+          container.append(label);
+
+          pageStates.set(number, {
+            container,
+            label,
+            canvas: null,
+            task: null,
+            rendering: false
+          });
+          fragment.append(container);
+        }
+        pagesContainer.append(fragment);
+      };
+
+      const releasePage = number => {
+        const state = pageStates.get(number);
+        if (!state) {
           return;
         }
-
-        currentPage = number;
-        updateNavigation();
-        status.hidden = false;
-        status.textContent = `正在渲染第 ${currentPage} 页…`;
-        const sequence = ++renderSequence;
-
-        if (renderTask) {
-          renderTask.cancel();
+        if (state.task) {
+          state.task.cancel();
+          state.task = null;
         }
+        if (state.canvas) {
+          state.canvas.remove();
+          state.canvas = null;
+        }
+        state.rendering = false;
+        state.label.hidden = false;
+      };
+
+      const ensurePageRendered = async number => {
+        const state = pageStates.get(number);
+        if (!pdfDocument || !state || state.rendering || state.canvas) {
+          return;
+        }
+        state.rendering = true;
 
         try {
-          const page = await pdfDocument.getPage(currentPage);
-          if (sequence !== renderSequence) {
+          const page = await pdfDocument.getPage(number);
+          if (!state.container.isConnected) {
             return;
           }
 
+          const availableWidth = Math.max(240, state.container.clientWidth);
           const baseViewport = page.getViewport({ scale: 1 });
-          const availableWidth = Math.max(240, Math.min(
-            document.querySelector('.stage').clientWidth,
-            window.innerWidth - (window.innerWidth <= 640 ? 12 : 32)
-          ));
-          const scale = availableWidth / baseViewport.width;
-          const viewport = page.getViewport({ scale });
-          const outputScale = Math.min(window.devicePixelRatio || 1, 2);
-
+          const viewport = page.getViewport({ scale: availableWidth / baseViewport.width });
+          const outputScale = Math.min(window.devicePixelRatio || 1, 1.5);
+          const canvas = document.createElement('canvas');
           canvas.width = Math.floor(viewport.width * outputScale);
           canvas.height = Math.floor(viewport.height * outputScale);
-          canvas.style.width = `${Math.floor(viewport.width)}px`;
-          canvas.style.height = `${Math.floor(viewport.height)}px`;
-
+          const context = canvas.getContext('2d', { alpha: false });
           const transform = outputScale === 1
             ? null
             : [outputScale, 0, 0, outputScale, 0, 0];
 
-          renderTask = page.render({
+          state.label.hidden = true;
+          state.canvas = canvas;
+          state.container.prepend(canvas);
+          const task = page.render({
             canvasContext: context,
             viewport,
             transform
           });
-          await renderTask.promise;
-          renderTask = null;
+          state.task = task;
+          await task.promise;
 
-          if (sequence === renderSequence) {
+          if (state.task !== task || !state.container.isConnected) {
+            canvas.remove();
+            if (state.canvas === canvas) {
+              state.canvas = null;
+            }
+            return;
+          }
+          state.task = null;
+          if (number === 1) {
             status.hidden = true;
           }
         } catch (error) {
           if (error?.name !== 'RenderingCancelledException') {
-            console.error(error);
-            showFallback('PDF 页面渲染失败，请尝试直接打开或下载。');
+            console.error(`第 ${number} 页渲染失败`, error);
+          }
+          if (state.canvas?.isConnected) {
+            state.canvas.remove();
+          }
+          state.canvas = null;
+          state.label.hidden = false;
+        } finally {
+          state.rendering = false;
+        }
+      };
+
+      const installPageObservers = () => {
+        renderObserver?.disconnect();
+        releaseObserver?.disconnect();
+
+        if ('IntersectionObserver' in window) {
+          renderObserver = new IntersectionObserver(entries => {
+            for (const entry of entries) {
+              if (entry.isIntersecting) {
+                ensurePageRendered(Number(entry.target.dataset.page));
+              }
+            }
+          }, { rootMargin: '1200px 0px' });
+
+          releaseObserver = new IntersectionObserver(entries => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) {
+                releasePage(Number(entry.target.dataset.page));
+              }
+            }
+          }, { rootMargin: '2600px 0px' });
+
+          for (const state of pageStates.values()) {
+            renderObserver.observe(state.container);
+            releaseObserver.observe(state.container);
+          }
+        } else {
+          [1, 2, 3].forEach(ensurePageRendered);
+        }
+      };
+
+      const updateCurrentPageFromScroll = () => {
+        if (!pdfDocument || pageStates.size === 0) {
+          return;
+        }
+        const header = document.querySelector('header').offsetHeight;
+        const toolbar = document.querySelector('.toolbar').offsetHeight;
+        const anchor = header + toolbar + Math.max(80, window.innerHeight * 0.28);
+        let closestPage = currentPage;
+        let closestDistance = Number.POSITIVE_INFINITY;
+
+        for (const [number, state] of pageStates) {
+          const rect = state.container.getBoundingClientRect();
+          if (rect.top <= anchor && rect.bottom >= anchor) {
+            closestPage = number;
+            break;
+          }
+          const distance = Math.abs(rect.top - anchor);
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestPage = number;
           }
         }
+
+        if (closestPage !== currentPage) {
+          currentPage = closestPage;
+          updateNavigation();
+        }
+        ensurePageRendered(Math.min(pdfDocument.numPages, currentPage + 1));
+      };
+
+      const scrollToPage = (number, behavior = 'smooth') => {
+        if (!pdfDocument) {
+          return;
+        }
+        const target = Math.min(Math.max(number, 1), pdfDocument.numPages);
+        const state = pageStates.get(target);
+        if (!state) {
+          return;
+        }
+        const offset = document.querySelector('header').offsetHeight +
+          document.querySelector('.toolbar').offsetHeight + 8;
+        const top = window.scrollY + state.container.getBoundingClientRect().top - offset;
+        currentPage = target;
+        updateNavigation();
+        ensurePageRendered(target);
+        window.scrollTo({ top: Math.max(0, top), behavior });
       };
 
       const loadPdf = async () => {
@@ -844,11 +998,22 @@
         try {
           pdfDocument = await window.pdfjsLib.getDocument({
             url: source.href,
-            isEvalSupported: false
+            isEvalSupported: false,
+            cMapUrl: new URL('vendor/pdfjs/cmaps/', window.location.href).href,
+            cMapPacked: true,
+            standardFontDataUrl: new URL(
+              'vendor/pdfjs/standard_fonts/',
+              window.location.href
+            ).href,
+            useSystemFonts: true
           }).promise;
           pageCount.textContent = String(pdfDocument.numPages);
           pageNumber.max = String(pdfDocument.numPages);
-          await renderPage(1);
+          createPageElements();
+          installPageObservers();
+          updateNavigation();
+          await ensurePageRendered(1);
+          updateCurrentPageFromScroll();
           await loadOutline();
         } catch (error) {
           console.error(error);
@@ -857,20 +1022,17 @@
       };
 
       previousButton.addEventListener('click', () => {
-        renderPage(currentPage - 1);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        scrollToPage(currentPage - 1);
       });
 
       nextButton.addEventListener('click', () => {
-        renderPage(currentPage + 1);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        scrollToPage(currentPage + 1);
       });
 
       pageNumber.addEventListener('change', () => {
         const requested = Number.parseInt(pageNumber.value, 10);
         if (Number.isFinite(requested)) {
-          renderPage(Math.min(Math.max(requested, 1), pdfDocument?.numPages || 1));
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          scrollToPage(Math.min(Math.max(requested, 1), pdfDocument?.numPages || 1), 'auto');
         } else {
           updateNavigation();
         }
@@ -891,8 +1053,25 @@
 
       window.addEventListener('resize', () => {
         clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => renderPage(currentPage), 180);
+        resizeTimer = setTimeout(() => {
+          for (const number of pageStates.keys()) {
+            releasePage(number);
+          }
+          ensurePageRendered(currentPage);
+          ensurePageRendered(Math.min(pdfDocument?.numPages || 1, currentPage + 1));
+          updateCurrentPageFromScroll();
+        }, 180);
       });
+
+      window.addEventListener('scroll', () => {
+        if (currentPageFrame !== null) {
+          return;
+        }
+        currentPageFrame = requestAnimationFrame(() => {
+          currentPageFrame = null;
+          updateCurrentPageFromScroll();
+        });
+      }, { passive: true });
 
       loadBookInfo();
       loadPdf();
