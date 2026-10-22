@@ -31,6 +31,15 @@ EXCLUDED_ENVIRONMENTS = re.compile(
 )
 
 
+def excluded_chapter_names():
+    raw = os.environ.get("BOOK_EXCLUDE_CHAPTERS", "")
+    return {
+        Path(value.strip()).name
+        for value in raw.replace(";", ",").split(",")
+        if value.strip()
+    }
+
+
 def git_value(*args):
     try:
         return subprocess.check_output(
@@ -245,7 +254,10 @@ def count_source(paths):
 
 def chapter_info():
     chapters = []
+    excluded = excluded_chapter_names()
     for chapter_dir in sorted((ROOT / "chapters").iterdir()):
+        if chapter_dir.name in excluded:
+            continue
         entry = chapter_dir / "chapter.tex"
         if not chapter_dir.is_dir() or not entry.is_file():
             continue
@@ -280,6 +292,7 @@ def chapter_info():
 
 def source_paths():
     paths = []
+    excluded = excluded_chapter_names()
     preface = ROOT / "frontmatter" / "preface.tex"
     appendix = ROOT / "backmatter" / "appendix.tex"
     if preface.is_file():
@@ -287,7 +300,7 @@ def source_paths():
     if appendix.is_file():
         paths.append(appendix)
     for chapter_dir in sorted((ROOT / "chapters").iterdir()):
-        if chapter_dir.is_dir():
+        if chapter_dir.is_dir() and chapter_dir.name not in excluded:
             paths.extend(sorted(chapter_dir.glob("[0-9][0-9]-*.tex")))
     return paths
 

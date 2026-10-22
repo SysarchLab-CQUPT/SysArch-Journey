@@ -10,17 +10,33 @@ chapters/ 下的目录，然后重新运行本脚本即可；main.tex 不用动�
 清单文件也是生成的，因此多人同时写作不会在装配处产生冲突。
 """
 
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CHAPTERS = ROOT / "chapters"
 
 
+def excluded_chapter_names():
+    raw = os.environ.get("BOOK_EXCLUDE_CHAPTERS", "")
+    return {
+        Path(value.strip()).name
+        for value in raw.replace(";", ",").split(",")
+        if value.strip()
+    }
+
+
 def chapter_dirs():
     if not CHAPTERS.is_dir():
         return []
+    excluded = excluded_chapter_names()
     return sorted(
-        (p for p in CHAPTERS.iterdir() if p.is_dir() and (p / "chapter.tex").is_file()),
+        (
+            p for p in CHAPTERS.iterdir()
+            if p.is_dir()
+            and p.name not in excluded
+            and (p / "chapter.tex").is_file()
+        ),
         key=lambda p: p.name,
     )
 
@@ -41,7 +57,15 @@ def main():
         "\\HasBibliography%s" % ("true" if bibs else "false"),
     ]
     (ROOT / "config" / "manifest.tex").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print("已更新 config/manifest.tex：%d 章，%d 个参考文献文件。" % (len(dirs), len(bibs)))
+    excluded = excluded_chapter_names()
+    print(
+        "已更新 config/manifest.tex：%d 章，%d 个参考文献文件。%s"
+        % (
+            len(dirs),
+            len(bibs),
+            " 排除：%s。" % "、".join(sorted(excluded)) if excluded else "",
+        )
+    )
 
 
 if __name__ == "__main__":

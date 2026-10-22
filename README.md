@@ -69,6 +69,15 @@ https://sysarchlab-cqupt.github.io/SysArch-Journey/
 https://sysarchlab-cqupt.github.io/SysArch-Journey/main.pdf
 ```
 
+GitHub Pages 构建会通过环境变量 `BOOK_EXCLUDE_CHAPTERS=00-typesetting-guide` 排除排版指南，
+因此线上 PDF 和网页统计只包含正式正文章节。本地默认仍会编译完整工作稿；需要同样排除时运行：
+
+```bash
+BOOK_EXCLUDE_CHAPTERS=00-typesetting-guide scripts/build.sh
+```
+
+如果以后直接删除整个第 0 章目录，章节清单生成器也会自动跳过它，不需要修改 `main.tex`。
+
 首次启用时，需要仓库管理员在 GitHub 的 **Settings → Pages → Build and deployment**
 中把 **Source** 设为 **GitHub Actions**。之后可在 **Actions → Publish Complete PDF →
 Run workflow** 手动触发。
