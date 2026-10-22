@@ -15,6 +15,7 @@
       --muted: #667085;
       --paper: #ffffff;
       --header-height: 67px;
+      --info-height: 92px;
     }
 
     * {
@@ -62,34 +63,39 @@
     }
 
     .book-info {
-      padding: 11px 22px 9px;
+      position: sticky;
+      top: var(--header-height);
+      z-index: 24;
+      height: var(--info-height);
+      padding: 8px 22px 6px;
       border-bottom: 1px solid var(--line);
-      background:
-        linear-gradient(120deg, rgb(244 247 250 / 96%), rgb(232 241 246 / 88%));
+      background: var(--panel);
+      overflow: visible;
     }
 
     .meta-row {
       display: flex;
       gap: 10px;
+      height: 47px;
       overflow-x: auto;
-      padding-bottom: 3px;
+      padding-bottom: 2px;
       scrollbar-width: thin;
     }
 
     .meta-item {
       flex: none;
       min-width: 118px;
-      padding: 8px 12px;
+      padding: 6px 11px;
       border: 1px solid rgb(213 221 229 / 90%);
       border-radius: 7px;
-      background: rgb(255 255 255 / 82%);
+      background: var(--paper);
     }
 
     .meta-item strong {
       display: block;
       margin-bottom: 2px;
       color: var(--brand);
-      font-size: 15px;
+      font-size: 14px;
     }
 
     .meta-item span {
@@ -110,8 +116,8 @@
 
     .toolbar {
       position: sticky;
-      top: var(--header-height);
-      z-index: 25;
+      top: calc(var(--header-height) + var(--info-height));
+      z-index: 23;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -119,7 +125,7 @@
       min-height: 52px;
       padding: 8px 14px 10px;
       border-bottom: 1px solid var(--line);
-      background: rgb(255 255 255 / 94%);
+      background: var(--paper);
       backdrop-filter: blur(8px);
     }
 
@@ -143,7 +149,8 @@
     }
 
     .chapter-overview {
-      margin-top: 8px;
+      position: relative;
+      margin-top: 3px;
       color: var(--brand);
       font-size: 13px;
     }
@@ -159,6 +166,22 @@
       margin: 9px 0 0;
       padding: 0;
       list-style: none;
+    }
+
+    .chapter-overview[open] .chapter-list {
+      position: absolute;
+      top: 24px;
+      left: 0;
+      z-index: 48;
+      width: min(760px, calc(100vw - 34px));
+      max-height: calc(100vh - var(--header-height) - var(--info-height) - 72px);
+      margin: 0;
+      padding: 8px 16px 12px;
+      overflow-y: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      box-shadow: 0 16px 36px rgb(23 50 77 / 18%);
     }
 
     .chapter-list li {
@@ -331,6 +354,13 @@
       background: var(--panel);
     }
 
+    .toc-item-button.active {
+      color: var(--accent);
+      font-weight: 700;
+      background: var(--panel);
+      box-shadow: inset 3px 0 var(--accent);
+    }
+
     .toc-placeholder {
       margin: 24px 10px;
       color: var(--muted);
@@ -430,6 +460,7 @@
     @media (max-width: 640px) {
       :root {
         --header-height: 52px;
+        --info-height: 78px;
       }
 
       header {
@@ -451,16 +482,17 @@
       }
 
       .book-info {
-        padding: 8px 8px 7px;
+        padding: 6px 8px 5px;
       }
 
       .meta-row {
         gap: 7px;
+        height: 43px;
       }
 
       .meta-item {
         min-width: 104px;
-        padding: 7px 10px;
+        padding: 5px 9px;
       }
 
       .toolbar {
@@ -512,7 +544,15 @@
       }
 
       .toc-panel {
+        top: var(--header-height);
         width: var(--toc-width);
+        border-left: 1px solid var(--line);
+        background: var(--panel);
+        box-shadow: none;
+      }
+
+      .toc-header {
+        background: var(--paper);
       }
 
       .zoom-controls {
@@ -558,7 +598,7 @@
     <a class="download" href="main.pdf" download>下载 PDF</a>
   </header>
 
-  <section id="book-info" class="book-info" aria-label="本书数据" hidden>
+  <section id="book-info" class="book-info" aria-label="本书数据">
     <div class="meta-row">
       <div class="meta-item">
         <strong id="meta-updated">–</strong>
@@ -672,8 +712,8 @@
       let zoomFactor = 1;
       let wheelZoomTimer = null;
       const pageStates = new Map();
-      const MAX_RENDERED_PAGES = 5;
-      const MAX_CANVAS_PIXELS = 6000000;
+      const MAX_RENDERED_PAGES = 4;
+      const MAX_CANVAS_PIXELS = 8000000;
 
       const formatWordCount = value => {
         if (!Number.isFinite(value)) {
@@ -783,7 +823,14 @@
         schedulePageRefresh();
       };
 
-      const goToDestination = async destinationValue => {
+      const setActiveTocItem = button => {
+        for (const active of tocList.querySelectorAll('.toc-item-button.active')) {
+          active.classList.remove('active');
+        }
+        button?.classList.add('active');
+      };
+
+      const goToDestination = async (destinationValue, button) => {
         try {
           const destination = typeof destinationValue === 'string'
             ? await pdfDocument.getDestination(destinationValue)
@@ -795,9 +842,8 @@
           const pageIndex = Number.isInteger(pageReference)
             ? pageReference
             : await pdfDocument.getPageIndex(pageReference);
+          setActiveTocItem(button);
           scrollToPage(pageIndex + 1, 'auto');
-          closeToc();
-          tocToggle.focus();
         } catch (error) {
           console.warn('目录跳转失败', error);
         }
@@ -813,7 +859,7 @@
           button.className = 'toc-item-button';
           button.textContent = item.title || '未命名目录项';
           if (item.dest) {
-            button.addEventListener('click', () => goToDestination(item.dest));
+            button.addEventListener('click', () => goToDestination(item.dest, button));
           } else {
             button.disabled = true;
           }
@@ -947,7 +993,7 @@
           const availableWidth = Math.max(240, state.container.clientWidth);
           const baseViewport = page.getViewport({ scale: 1 });
           const viewport = page.getViewport({ scale: availableWidth / baseViewport.width });
-          const desiredScale = Math.min(window.devicePixelRatio || 1, 1.5);
+          const desiredScale = Math.min(window.devicePixelRatio || 1, 3);
           const pixelLimitScale = Math.sqrt(
             MAX_CANVAS_PIXELS / (viewport.width * viewport.height)
           );
@@ -956,6 +1002,8 @@
           canvas.width = Math.floor(viewport.width * outputScale);
           canvas.height = Math.floor(viewport.height * outputScale);
           const context = canvas.getContext('2d', { alpha: false });
+          context.imageSmoothingEnabled = true;
+          context.imageSmoothingQuality = 'high';
           const transform = outputScale === 1
             ? null
             : [outputScale, 0, 0, outputScale, 0, 0];
@@ -1045,9 +1093,8 @@
         if (!pdfDocument || pageStates.size === 0) {
           return;
         }
-        const header = document.querySelector('header').offsetHeight;
-        const toolbar = document.querySelector('.toolbar').offsetHeight;
-        const anchor = header + toolbar + Math.max(80, window.innerHeight * 0.28);
+        const toolbarBottom = document.querySelector('.toolbar').getBoundingClientRect().bottom;
+        const anchor = toolbarBottom + Math.max(80, (window.innerHeight - toolbarBottom) * 0.28);
         let closestPage = currentPage;
         let closestDistance = Number.POSITIVE_INFINITY;
 
@@ -1080,8 +1127,7 @@
         if (!state) {
           return;
         }
-        const offset = document.querySelector('header').offsetHeight +
-          document.querySelector('.toolbar').offsetHeight + 8;
+        const offset = document.querySelector('.toolbar').getBoundingClientRect().bottom + 8;
         const top = window.scrollY + state.container.getBoundingClientRect().top - offset;
         currentPage = target;
         updateNavigation();
@@ -1178,7 +1224,13 @@
         }
       });
 
-      tocToggle.addEventListener('click', openToc);
+      tocToggle.addEventListener('click', () => {
+        if (document.body.classList.contains('toc-open')) {
+          closeToc();
+        } else {
+          openToc();
+        }
+      });
       tocClose.addEventListener('click', () => {
         closeToc();
         tocToggle.focus();
