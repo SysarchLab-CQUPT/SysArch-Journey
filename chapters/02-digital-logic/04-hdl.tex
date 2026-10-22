@@ -34,7 +34,7 @@ Verilog 描述的是\textbf{一块电路}。你写下的每一句，都是在画
 
 这也是为什么，同一段逻辑既可以用 \texttt{assign} 写，也可以用 \texttt{always} 写——它们只是两种“描述同一块电路”的笔法，综合出来的东西可能一模一样。后面我们会反复回到这个念头。
 
-\KeyPoint{本节只讲“能变成电路”的那部分语法}{Verilog 里还有不少语法是写给仿真器看的：\texttt{\$display} 打印、延时 \texttt{\#10}、\texttt{initial} 块里的测试代码……它们不会综合成任何硬件。本节只用可综合的写法；仿真与时序激励留到\cref{sec:02-digital-logic-04}再讲。综合工具的行为细节，见 AMD 的《Vivado Design Suite User Guide: Synthesis》（UG901）\citep{vivado-ug901}，原文地址 \url{https://docs.amd.com/v/u/en-US/ug901-vivado-synthesis}。}
+\KeyPoint{本节只讲“能变成电路”的那部分语法}{Verilog 里还有不少语法是写给仿真器看的：\texttt{\$display} 打印、延时 \texttt{\#10}、\texttt{initial} 块里的测试代码……它们不会综合成任何硬件。本节只用可综合的写法；仿真与时序激励留到\cref{sec:02-digital-logic-05}再讲。综合工具的行为细节，见 AMD 的《Vivado Design Suite User Guide: Synthesis》（UG901）\citep{vivado-ug901}，原文地址 \url{https://docs.amd.com/v/u/en-US/ug901-vivado-synthesis}。}
 
 \subsection{模块：Verilog 的“元件”}
 
@@ -429,7 +429,7 @@ end
 
 \textbf{文件一：分频器}。\cref{lst:02-hdl-div}是完整源码。
 
-\lstinputlisting[language=Verilog,caption={时钟分频器：\texttt{clk\_div.v}},label={lst:02-hdl-div}]{code/03-hdl/clk_div.v}
+\lstinputlisting[language=Verilog,caption={时钟分频器：\texttt{clk\_div.v}},label={lst:02-hdl-div}]{code/04-hdl/clk_div.v}
 
 这段代码做的其实就一件事：\textbf{数够一定数量的时钟周期，输出一个 tick}。数多少个？算一算：\texttt{CLK\_FREQ} 是 50\,000\,000，对应时钟周期 $1/50\,\text{MHz}=20\,\text{ns}$；\texttt{TICK\_HZ} 是 1，表示每秒要一个 tick；那么两次 tick 之间需要 $1\,\text{s} \div 20\,\text{ns}=5\times10^7$ 个时钟周期。所以 \texttt{CNT\_MAX} 取 $5\times10^7-1=49\,999\,999$：计数器从 0 数到它为止，正好走完 1 秒。
 
@@ -439,13 +439,13 @@ end
 
 \textbf{文件二：移位器}。\cref{lst:02-hdl-shift}只有十几行，但 \texttt{reg}、拼接、时序 \texttt{always}、复位全都在。
 
-\lstinputlisting[language=Verilog,caption={流水灯移位器：\texttt{led\_shifter.v}},label={lst:02-hdl-shift}]{code/03-hdl/led_shifter.v}
+\lstinputlisting[language=Verilog,caption={流水灯移位器：\texttt{led\_shifter.v}},label={lst:02-hdl-shift}]{code/04-hdl/led_shifter.v}
 
 注意 \texttt{led} 被声明为 \texttt{output reg}：它在 \texttt{always} 里赋值，按铁律必须是 \texttt{reg}。复位值 \texttt{\{(WIDTH-1)\{1'b0\}\}, 1'b1} 的意思是“复制 \texttt{WIDTH-1} 个 0，再拼上一个 1”——也就是只有最低位亮。移位那句 \texttt{\{led[WIDTH-2:0], led[WIDTH-1]\}} 把最高位丢到最低位，形成循环。还有一个细节：\texttt{else if (tick)} 后面没有 \texttt{else}——没有节拍时什么也不写，触发器自然保持原值，这正是我们想要的。
 
 \textbf{文件三：顶层}。\cref{lst:02-hdl-top}把两个子模块接起来。
 
-\lstinputlisting[language=Verilog,caption={顶层模块：\texttt{led\_flow\_top.v}},label={lst:02-hdl-top}]{code/03-hdl/led_flow_top.v}
+\lstinputlisting[language=Verilog,caption={顶层模块：\texttt{led\_flow\_top.v}},label={lst:02-hdl-top}]{code/04-hdl/led_flow_top.v}
 
 顶层里出现了本节讲过的所有“身份”：\texttt{wire tick} 是模块之间的连线，由子模块的输出驱动，所以是 \texttt{wire}；输出 \texttt{led} 也是 \texttt{output wire}，因为它由 \texttt{led\_shifter} 的输出端口驱动；例化时用 \lstinline|#(.WIDTH(16))| 这样的写法覆盖参数，用 \lstinline|.led (led)| 这样的写法按名字连接。你可能会注意到三个文件里一条 \texttt{assign} 都没有——这不是遗漏：本工程的组合逻辑只有“计数器加一”和“拼接移位”，都写在 \texttt{always} 里更自然。\texttt{assign} 和 \texttt{always} 是描述同一类电路的两种笔法，选顺手的用，但\textbf{同一个信号只用一个驱动源}。
 
@@ -472,9 +472,9 @@ end
 
 \subsubsection*{第 1 步：新建工程}
 
-\HdlFig{figures/03-hdl/vivado-01-create-project}{Vivado 欢迎界面：Quick Start 里的 Create Project}{fig:02-hdl-vivado-01}
+\HdlFig{figures/04-hdl/vivado-01-create-project}{Vivado 欢迎界面：Quick Start 里的 Create Project}{fig:02-hdl-vivado-01}
 
-\HdlFig{figures/03-hdl/vivado-02-project-name}{新建工程向导：工程名与存放路径}{fig:02-hdl-vivado-02}
+\HdlFig{figures/04-hdl/vivado-02-project-name}{新建工程向导：工程名与存放路径}{fig:02-hdl-vivado-02}
 
 启动 Vivado，欢迎界面左侧的 \textbf{Quick Start} 区有三个入口（\cref{fig:02-hdl-vivado-01}）：\textbf{Create Project} 新建工程；\textbf{Open Project} 打开已有工程；\textbf{Open Example Project} 打开官方示例工程（想直接读别人写的代码，可以从这里翻）。下方 \textbf{Tasks} 区是常用任务入口（Manage IP 管理 IP 核、Open Hardware Manager 连开发板、Vivado Store 插件商店），\textbf{Learning Center} 是文档和视频教程；新手阶段可以先不管它们。点 \textbf{Create Project}。
 
@@ -482,7 +482,7 @@ end
 
 \subsubsection*{第 2 步：选择工程类型}
 
-\HdlFig{figures/03-hdl/vivado-03-project-type}{工程类型：默认 RTL Project，以及两个附属复选框}{fig:02-hdl-vivado-03}
+\HdlFig{figures/04-hdl/vivado-03-project-type}{工程类型：默认 RTL Project，以及两个附属复选框}{fig:02-hdl-vivado-03}
 
 \cref{fig:02-hdl-vivado-03} 是工程类型页。默认的 \textbf{RTL Project} 就是我们要的，它支持添加设计源码、调用 IP、搭 Block Design，并完成综合、实现、仿真、生成比特流——绝大多数数字电路和 CPU 实验都选它。它下面挂了两个复选框：
 
@@ -504,7 +504,7 @@ end
 
 \subsubsection*{第 3 步：选择器件}
 
-\HdlFig{figures/03-hdl/vivado-04-device}{器件选择：Parts 标签页的筛选器与资源表格}{fig:02-hdl-vivado-04}
+\HdlFig{figures/04-hdl/vivado-04-device}{器件选择：Parts 标签页的筛选器与资源表格}{fig:02-hdl-vivado-04}
 
 \cref{fig:02-hdl-vivado-04} 是器件选择页，顶部有两个标签页：
 
@@ -544,7 +544,7 @@ end
 
 Sources 面板上的 \textbf{+} 号和 Flow Navigator 里的 \textbf{Add Sources} 是同一个入口。\cref{fig:02-hdl-vivado-05} 就是弹出的 Add Sources 对话框，选 \textbf{Add or create design sources}——另外两个选项分别对应约束文件和仿真源码。
 
-\HdlFig{figures/03-hdl/vivado-05-add-sources}{Add Sources：选择添加哪一类源文件}{fig:02-hdl-vivado-05}
+\HdlFig{figures/04-hdl/vivado-05-add-sources}{Add Sources：选择添加哪一类源文件}{fig:02-hdl-vivado-05}
 
 三个选项的区别是：
 
@@ -556,7 +556,7 @@ Sources 面板上的 \textbf{+} 号和 Flow Navigator 里的 \textbf{Add Sources
 
 点 Next 之后有两个按钮值得区分：\mbox{\textbf{Add Files}} 用来添加电脑上已经写好的 \texttt{.v} 文件；\mbox{\textbf{Create File}} 则在工程里新建一个空文件。本例用 Create File 新建 \texttt{clk\_div}，对话框如\cref{fig:02-hdl-vivado-06}：
 
-\HdlFig{figures/03-hdl/vivado-06-create-file}{新建源文件：Create Source File 对话框}{fig:02-hdl-vivado-06}
+\HdlFig{figures/04-hdl/vivado-06-create-file}{新建源文件：Create Source File 对话框}{fig:02-hdl-vivado-06}
 
 \begin{itemize}
   \item \textbf{File type}：选 Verilog；
@@ -565,13 +565,13 @@ Sources 面板上的 \textbf{+} 号和 Flow Navigator 里的 \textbf{Add Sources
   \item 点 \mbox{\textbf{Create File}}，再用同样的办法建 \texttt{led\_shifter} 和 \texttt{led\_flow\_top}，最后点 \mbox{\textbf{Finish}}。
 \end{itemize}
 
-建好的空文件里只有 \texttt{module}/\texttt{endmodule} 骨架，把 2.3.7 的代码贴进去、按 \texttt{Ctrl+S} 保存就行。如果代码早就写好了，也可以一开始就用 Add Files 一次性加进来，效果一样；记得勾选 \textbf{Copy sources into project}，让 Vivado 把文件复制进工程目录，免得以后挪了原始文件、工程就找不到代码。
+建好的空文件里只有 \texttt{module}/\texttt{endmodule} 骨架，把前面流水灯工程的代码贴进去、按 \texttt{Ctrl+S} 保存就行。如果代码早就写好了，也可以一开始就用 Add Files 一次性加进来，效果一样；记得勾选 \textbf{Copy sources into project}，让 Vivado 把文件复制进工程目录，免得以后挪了原始文件、工程就找不到代码。
 
 \subsubsection*{第 5 步：Define Module：用表格定义端口}
 
 新建或添加源文件时，Vivado 会弹出 \textbf{Define Module}（\cref{fig:02-hdl-vivado-07}）：它是一张可视化表格，可以“点着点着”把端口生成到代码里。
 
-\HdlFig{figures/03-hdl/vivado-07-define-module}{Define Module：用表格定义端口，以及未填写时的确认框}{fig:02-hdl-vivado-07}
+\HdlFig{figures/04-hdl/vivado-07-define-module}{Define Module：用表格定义端口，以及未填写时的确认框}{fig:02-hdl-vivado-07}
 
 表格里的每一列分别是：
 
@@ -592,13 +592,13 @@ Sources 面板上的 \textbf{+} 号和 Flow Navigator 里的 \textbf{Add Sources
 
 \cref{fig:02-hdl-vivado-08} 左侧的 Sources 面板里已经有 \texttt{clk\_div.v} 和 \texttt{led\_shifter.v}。注意编辑器标签页上的星号 \textbf{*}：它表示这个文件改过但\textbf{还没保存}。
 
-\HdlFig{figures/03-hdl/vivado-08-sources-unsaved}{Sources 面板：文件列表与未保存的 * 标记}{fig:02-hdl-vivado-08}
+\HdlFig{figures/04-hdl/vivado-08-sources-unsaved}{Sources 面板：文件列表与未保存的 * 标记}{fig:02-hdl-vivado-08}
 
 Vivado 不会自动保存，一定要养成随手 \texttt{Ctrl+S} 的习惯——星号消失，才算真的写进了磁盘。断电、崩溃时没保存的内容会全部丢失，这是很多人踩过的坑。
 
 把 \texttt{led\_flow\_top.v} 加进来、两个子模块也例化好并保存之后，Sources 树会变成层级结构（\cref{fig:02-hdl-vivado-09}）：顶层 \texttt{led\_flow\_top} 下面缩进着 \texttt{u\_clk\_div} 和 \texttt{u\_led\_shifter}，括号里是它们对应的文件；文件名后面的 (2) 表示它下面还挂着两个子模块。换句话说，\textbf{例化不是“注释”，Vivado 真的把子模块挂到了顶层下面}。
 
-\HdlFig{figures/03-hdl/vivado-09-hierarchy}{添加顶层并例化之后，Sources 面板自动显示层次结构}{fig:02-hdl-vivado-09}
+\HdlFig{figures/04-hdl/vivado-09-hierarchy}{添加顶层并例化之后，Sources 面板自动显示层次结构}{fig:02-hdl-vivado-09}
 
 顶层的名字在树里是粗体；如果发现顶层不对，右键文件选 \textbf{Set as Top}。一个工程只能有一个顶层。
 
@@ -610,7 +610,7 @@ Vivado 不会自动保存，一定要养成随手 \texttt{Ctrl+S} 的习惯—�
 
 操作很简单：Flow Navigator → SYNTHESIS → \textbf{Run Synthesis}，弹出的 Launch Runs 对话框如\cref{fig:02-hdl-vivado-10}。
 
-\HdlFig{figures/03-hdl/vivado-10-run-synthesis}{运行综合：Launch Runs 对话框}{fig:02-hdl-vivado-10}
+\HdlFig{figures/04-hdl/vivado-10-run-synthesis}{运行综合：Launch Runs 对话框}{fig:02-hdl-vivado-10}
 
 \begin{itemize}
   \item \textbf{Launch directory}：综合运行目录，默认即可，产物在工程的 \texttt{runs} 目录下；
@@ -622,13 +622,13 @@ Vivado 不会自动保存，一定要养成随手 \texttt{Ctrl+S} 的习惯—�
 
 综合要跑一会儿，此时点 \textbf{Project Summary} 页可以看进度（\cref{fig:02-hdl-vivado-11}）。
 
-\HdlFig{figures/03-hdl/vivado-11-synthesis-running}{综合进行中：Project Summary 里的状态与消息}{fig:02-hdl-vivado-11}
+\HdlFig{figures/04-hdl/vivado-11-synthesis-running}{综合进行中：Project Summary 里的状态与消息}{fig:02-hdl-vivado-11}
 
 Synthesis 区域的 Status 显示 \texttt{Running synth\_design}，Messages 显示 No errors or warnings；右侧 Implementation 还是 Not started（还没到那一步）；下面的 Strategy 是综合策略（Vivado Synthesis Defaults，另有偏面积、偏时序的策略可选），Incremental synthesis 是增量综合（第二次综合才用得上，第一次显示自动选择检查点）。窗口右上角同样显示 \texttt{Running synth\_design}，旁边的 Cancel 可以中止；底部的 Tcl Console 会滚动输出综合日志（耗时、内存等）。也可以点下方的 \textbf{Design Runs} 标签，按 run 查看状态。
 
 综合完成后会弹出 \textbf{Synthesis Completed}（\cref{fig:02-hdl-vivado-12}），三个选项分别对应接下来的动作：
 
-\HdlFig{figures/03-hdl/vivado-12-synthesis-done}{综合完成：三个后续选项}{fig:02-hdl-vivado-12}
+\HdlFig{figures/04-hdl/vivado-12-synthesis-done}{综合完成：三个后续选项}{fig:02-hdl-vivado-12}
 
 \begin{itemize}
   \item \textbf{Run Implementation}：继续做实现（布局布线），本节不做；
@@ -642,7 +642,7 @@ Synthesis 区域的 Status 显示 \texttt{Running synth\_design}，Messages 显�
 
 打开 Synthesized Design 后，界面会切换到网表视图，左侧 Sources 变成 \textbf{Netlist}（Nets 15、Leaf Cells 7，下面挂着 \texttt{u\_clk\_div} 和 \texttt{u\_led\_shifter}），右侧默认打开 \textbf{Schematic} 标签，如\cref{fig:02-hdl-vivado-13}。
 
-\HdlFig{figures/03-hdl/vivado-13-schematic}{综合后的电路图：三个 .v 文件变成了 LUT、触发器和 IO 缓冲}{fig:02-hdl-vivado-13}
+\HdlFig{figures/04-hdl/vivado-13-schematic}{综合后的电路图：三个 .v 文件变成了 LUT、触发器和 IO 缓冲}{fig:02-hdl-vivado-13}
 
 图里能认出这些角色：
 
