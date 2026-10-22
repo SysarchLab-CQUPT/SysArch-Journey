@@ -338,6 +338,28 @@
       line-height: 1.6;
     }
 
+    .zoom-controls {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      margin-left: 4px;
+      padding-left: 10px;
+      border-left: 1px solid var(--line);
+    }
+
+    .zoom-controls button {
+      min-width: 38px;
+      padding-right: 8px;
+      padding-left: 8px;
+    }
+
+    #zoom-reset {
+      min-width: 58px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
     #page-number {
       width: 52px;
       margin: 0 4px;
@@ -351,6 +373,7 @@
 
     main {
       padding: 16px 12px 28px;
+      overflow-x: auto;
     }
 
     .status {
@@ -361,7 +384,6 @@
 
     .pdf-pages {
       width: 100%;
-      max-width: 1080px;
       margin: 0 auto;
     }
 
@@ -474,6 +496,30 @@
       }
     }
 
+    @media (min-width: 1024px) {
+      :root {
+        --toc-width: min(380px, 34vw);
+      }
+
+      body.toc-open {
+        overflow: auto;
+        padding-right: var(--toc-width);
+      }
+
+      .toc-open .toc-backdrop {
+        visibility: hidden;
+        opacity: 0;
+      }
+
+      .toc-panel {
+        width: var(--toc-width);
+      }
+
+      .zoom-controls {
+        display: flex;
+      }
+    }
+
     @media (max-width: 380px) {
       .toolbar {
         gap: 4px;
@@ -558,6 +604,11 @@
     <button id="next-page" type="button" disabled>下一页</button>
     <button id="toc-toggle" class="toc-toggle" type="button"
             aria-controls="toc-panel" aria-expanded="false" disabled>目录</button>
+    <div class="zoom-controls" aria-label="PDF 缩放">
+      <button id="zoom-out" type="button" aria-label="缩小">−</button>
+      <button id="zoom-reset" type="button" title="恢复适合宽度">100%</button>
+      <button id="zoom-in" type="button" aria-label="放大">＋</button>
+    </div>
     <div id="progress-track" class="progress-track" role="progressbar"
          aria-label="阅读进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
       <span id="reading-progress"></span>
@@ -608,6 +659,9 @@
       const tocBackdrop = document.getElementById('toc-backdrop');
       const tocList = document.getElementById('toc-list');
       const tocPlaceholder = document.getElementById('toc-placeholder');
+      const zoomOut = document.getElementById('zoom-out');
+      const zoomReset = document.getElementById('zoom-reset');
+      const zoomIn = document.getElementById('zoom-in');
 
       let pdfDocument = null;
       let currentPage = 1;
@@ -615,7 +669,11 @@
       let currentPageFrame = null;
       let renderObserver = null;
       let releaseObserver = null;
+      let zoomFactor = 1;
+      let wheelZoomTimer = null;
       const pageStates = new Map();
+      const MAX_RENDERED_PAGES = 5;
+      const MAX_CANVAS_PIXELS = 6000000;
 
       const formatWordCount = value => {
         if (!Number.isFinite(value)) {
@@ -715,12 +773,14 @@
         tocToggle.setAttribute('aria-expanded', 'true');
         document.getElementById('toc-panel').setAttribute('aria-hidden', 'false');
         tocClose.focus();
+        schedulePageRefresh();
       };
 
       const closeToc = () => {
         document.body.classList.remove('toc-open');
         tocToggle.setAttribute('aria-expanded', 'false');
         document.getElementById('toc-panel').setAttribute('aria-hidden', 'true');
+        schedulePageRefresh();
       };
 
       const goToDestination = async destinationValue => {
@@ -797,6 +857,10 @@
         nextButton.disabled = !ready || currentPage >= pdfDocument.numPages;
         pageNumber.disabled = !ready;
         pageNumber.value = String(currentPage);
+        zoomOut.disabled = !ready || zoomFactor <= 0.75;
+        zoomIn.disabled = !ready || zoomFactor >= 2.5;
+        zoomReset.disabled = !ready;
+        zoomReset.textContent = `${Math.round(zoomFactor * 100)}%`;
         const progress = ready ? Math.round(currentPage / pdfDocument.numPages * 100) : 0;
         readingProgress.style.width = `${progress}%`;
         progressTrack.setAttribute('aria-valuenow', String(progress));
@@ -822,6 +886,8 @@
             label,
             canvas: null,
             task: null,
+            page: null,
+            generation: 0,
             rendering: false
           });
           fragment.append(container);
@@ -834,6 +900,7 @@
         if (!state) {
           return;
         }
+        state.generation += 1;
         if (state.task) {
           state.task.cancel();
           state.task = null;
@@ -841,6 +908,10 @@
         if (state.canvas) {
           state.canvas.remove();
           state.canvas = null;
+        }
+        if (state.page) {
+          state.page.cleanup();
+          state.page = null;
         }
         state.rendering = false;
         state.label.hidden = false;
@@ -851,19 +922,37 @@
         if (!pdfDocument || !state || state.rendering || state.canvas) {
           return;
         }
+
+        const renderedPages = [...pageStates.entries()]
+          .filter(([, value]) => value.canvas || value.rendering)
+          .sort((left, right) => Math.abs(right[0] - currentPage) - Math.abs(left[0] - currentPage));
+        while (renderedPages.length >= MAX_RENDERED_PAGES) {
+          const [farthestPage] = renderedPages.shift();
+          releasePage(farthestPage);
+        }
+
         state.rendering = true;
+        const generation = state.generation + 1;
+        state.generation = generation;
+        let page = null;
+        let canvas = null;
 
         try {
-          const page = await pdfDocument.getPage(number);
-          if (!state.container.isConnected) {
+          page = await pdfDocument.getPage(number);
+          if (state.generation !== generation || !state.container.isConnected) {
+            page.cleanup();
             return;
           }
 
           const availableWidth = Math.max(240, state.container.clientWidth);
           const baseViewport = page.getViewport({ scale: 1 });
           const viewport = page.getViewport({ scale: availableWidth / baseViewport.width });
-          const outputScale = Math.min(window.devicePixelRatio || 1, 1.5);
-          const canvas = document.createElement('canvas');
+          const desiredScale = Math.min(window.devicePixelRatio || 1, 1.5);
+          const pixelLimitScale = Math.sqrt(
+            MAX_CANVAS_PIXELS / (viewport.width * viewport.height)
+          );
+          const outputScale = Math.min(desiredScale, pixelLimitScale);
+          canvas = document.createElement('canvas');
           canvas.width = Math.floor(viewport.width * outputScale);
           canvas.height = Math.floor(viewport.height * outputScale);
           const context = canvas.getContext('2d', { alpha: false });
@@ -873,6 +962,7 @@
 
           state.label.hidden = true;
           state.canvas = canvas;
+          state.page = page;
           state.container.prepend(canvas);
           const task = page.render({
             canvasContext: context,
@@ -882,10 +972,16 @@
           state.task = task;
           await task.promise;
 
-          if (state.task !== task || !state.container.isConnected) {
+          if (state.generation !== generation ||
+              state.task !== task ||
+              !state.container.isConnected) {
             canvas.remove();
             if (state.canvas === canvas) {
               state.canvas = null;
+            }
+            if (state.page === page) {
+              page.cleanup();
+              state.page = null;
             }
             return;
           }
@@ -897,13 +993,21 @@
           if (error?.name !== 'RenderingCancelledException') {
             console.error(`第 ${number} 页渲染失败`, error);
           }
-          if (state.canvas?.isConnected) {
+          if (state.canvas === canvas) {
             state.canvas.remove();
+            state.canvas = null;
           }
-          state.canvas = null;
-          state.label.hidden = false;
+          if (state.page === page) {
+            state.page.cleanup();
+            state.page = null;
+          }
+          if (state.generation === generation) {
+            state.label.hidden = false;
+          }
         } finally {
-          state.rendering = false;
+          if (state.generation === generation) {
+            state.rendering = false;
+          }
         }
       };
 
@@ -918,7 +1022,7 @@
                 ensurePageRendered(Number(entry.target.dataset.page));
               }
             }
-          }, { rootMargin: '1200px 0px' });
+          }, { rootMargin: '800px 0px' });
 
           releaseObserver = new IntersectionObserver(entries => {
             for (const entry of entries) {
@@ -926,7 +1030,7 @@
                 releasePage(Number(entry.target.dataset.page));
               }
             }
-          }, { rootMargin: '2600px 0px' });
+          }, { rootMargin: '1600px 0px' });
 
           for (const state of pageStates.values()) {
             renderObserver.observe(state.container);
@@ -985,6 +1089,41 @@
         window.scrollTo({ top: Math.max(0, top), behavior });
       };
 
+      const applyPageWidth = () => {
+        const main = document.querySelector('main');
+        const horizontalPadding = window.innerWidth <= 640 ? 12 : 28;
+        const fitWidth = Math.max(240, Math.min(main.clientWidth - horizontalPadding, 1080));
+        pagesContainer.style.width = `${Math.floor(fitWidth * zoomFactor)}px`;
+        zoomReset.textContent = `${Math.round(zoomFactor * 100)}%`;
+      };
+
+      const refreshRenderedPages = () => {
+        if (!pdfDocument) {
+          applyPageWidth();
+          return;
+        }
+        const target = currentPage;
+        for (const number of pageStates.keys()) {
+          releasePage(number);
+        }
+        applyPageWidth();
+        requestAnimationFrame(() => {
+          scrollToPage(target, 'auto');
+          ensurePageRendered(target);
+        });
+      };
+
+      const schedulePageRefresh = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(refreshRenderedPages, 100);
+      };
+
+      const setZoom = factor => {
+        zoomFactor = Math.min(2.5, Math.max(0.75, factor));
+        schedulePageRefresh();
+        updateNavigation();
+      };
+
       const loadPdf = async () => {
         if (!window.pdfjsLib) {
           showFallback('PDF 预览组件加载失败，请尝试直接打开或下载。');
@@ -1009,6 +1148,7 @@
           }).promise;
           pageCount.textContent = String(pdfDocument.numPages);
           pageNumber.max = String(pdfDocument.numPages);
+          applyPageWidth();
           createPageElements();
           installPageObservers();
           updateNavigation();
@@ -1051,17 +1191,58 @@
         }
       });
 
-      window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(() => {
-          for (const number of pageStates.keys()) {
-            releasePage(number);
-          }
-          ensurePageRendered(currentPage);
-          ensurePageRendered(Math.min(pdfDocument?.numPages || 1, currentPage + 1));
-          updateCurrentPageFromScroll();
-        }, 180);
+      const zoomSteps = [0.75, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.25, 2.5];
+      const stepZoom = direction => {
+        const next = direction > 0
+          ? zoomSteps.find(value => value > zoomFactor + 0.001)
+          : [...zoomSteps].reverse().find(value => value < zoomFactor - 0.001);
+        if (next !== undefined) {
+          setZoom(next);
+        }
+      };
+
+      zoomOut.addEventListener('click', () => stepZoom(-1));
+      zoomIn.addEventListener('click', () => stepZoom(1));
+      zoomReset.addEventListener('click', () => setZoom(1));
+
+      window.addEventListener('wheel', event => {
+        if (!(event.ctrlKey || event.metaKey) || window.innerWidth < 1024) {
+          return;
+        }
+        event.preventDefault();
+        const direction = event.deltaY < 0 ? 1 : -1;
+        clearTimeout(wheelZoomTimer);
+        wheelZoomTimer = setTimeout(() => stepZoom(direction), 50);
+      }, { passive: false });
+
+      document.addEventListener('keydown', event => {
+        if (!(event.ctrlKey || event.metaKey)) {
+          return;
+        }
+        if (event.key === '+' || event.key === '=') {
+          event.preventDefault();
+          stepZoom(1);
+        } else if (event.key === '-') {
+          event.preventDefault();
+          stepZoom(-1);
+        } else if (event.key === '0') {
+          event.preventDefault();
+          setZoom(1);
+        }
       });
+
+      window.addEventListener('resize', schedulePageRefresh);
+
+      if ('ResizeObserver' in window) {
+        let observedMainWidth = Math.round(document.querySelector('main').clientWidth);
+        new ResizeObserver(entries => {
+          const width = Math.round(entries[0].contentRect.width);
+          if (width !== observedMainWidth) {
+            observedMainWidth = width;
+            schedulePageRefresh();
+          }
+        }).observe(document.querySelector('main'));
+      }
 
       window.addEventListener('scroll', () => {
         if (currentPageFrame !== null) {
