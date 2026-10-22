@@ -1,9 +1,671 @@
 \section{硬件描述语言入门}
 \label{sec:02-digital-logic-04}
 
-% TODO：撰写本节正文。建议结构：
-%   1) 问题引入与学习目标
-%   2) 原理与机制（配图、公式）
-%   3) 示例或实验步骤
-%   4) 小结与思考题
-本节待撰写。
+用图形工具画电路，直观，也符合直觉：拖几个门、连几根线，电路就出来了。可一旦电路涨到几十个门、上百根线，画图就成了一件痛苦的事——挪一个元件，半张图都要重画；想改一处细节，得靠肉眼在密密麻麻的连线里找。
+
+工程师的解法是：\textbf{用文本描述电路}。这种“描述硬件的文本”就叫硬件描述语言（Hardware Description Language，HDL）。工业界最主流的两种是 Verilog 和 VHDL，本书统一使用 Verilog——它的语法接近 C，上手快，后面造处理器核时也用它来写。Verilog 的语法以 IEEE 1364 标准为准\citep{ieee1364}。
+
+Verilog 的语法并不多，真正难的是换脑子：把“写程序”的思路换成“描述电路”的思路。
+
+\subsection{先换个脑子：Verilog 不是“写程序”}
+
+新手写 Verilog 最常见的错误，是把它当成 C 语言来写：以为语句是一行一行往下执行的，以为变量可以先存一个值、过两行再改。这套直觉在软件里天经地义，在硬件里却完全不成立。
+
+Verilog 描述的是\textbf{一块电路}。你写下的每一句，都是在画一根线、一个门、一个触发器；这些电路\textbf{同时存在、同时工作}，没有谁“先执行”、谁“后执行”。所以写 Verilog 时，脑子里要装的不是“程序怎么跑”，而是“这块电路长什么样”。
+
+写完之后，综合工具（synthesis）会把你的描述翻译成门级网表：与门、或门、触发器，以及它们之间的连线；再经过布局布线，最终变成 FPGA 里的查找表和开关。\cref{tab:02-hdl-soft-vs-hw}把两套思维模型放在一起对照。
+
+\begin{table}[htbp]
+\centering
+\caption{写软件和写硬件，脑子里要切换的两套模型}
+\label{tab:02-hdl-soft-vs-hw}
+\begin{tabularx}{\linewidth}{@{}P{30mm}YY@{}}
+\toprule
+对比项 & 软件（以 C 语言为参照） & 硬件描述（Verilog） \\
+\midrule
+语句怎么执行 & 一条接一条，顺序执行 & 所有语句描述的电路同时存在、同时工作 \\
+“赋值”是什么 & 把值写进内存单元 & 把两个电路节点连起来，或描述一个触发器怎样更新 \\
+时间从哪来 & 程序的执行顺序 & 时钟的节拍（时序逻辑），或信号变化的传播（组合逻辑）\\
+多写几行的代价 & 几乎不花钱 & 每个 \texttt{always}、每个运算符都会变成一片真实电路，面积和功耗都要付钱 \\
+出了问题怎么看 & 打断点、单步调试 & 看仿真波形、抓信号、上板观察 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+这也是为什么，同一段逻辑既可以用 \texttt{assign} 写，也可以用 \texttt{always} 写——它们只是两种“描述同一块电路”的笔法，综合出来的东西可能一模一样。后面我们会反复回到这个念头。
+
+\KeyPoint{本节只讲“能变成电路”的那部分语法}{Verilog 里还有不少语法是写给仿真器看的：\texttt{\$display} 打印、延时 \texttt{\#10}、\texttt{initial} 块里的测试代码……它们不会综合成任何硬件。本节只用可综合的写法；仿真与时序激励留到\cref{sec:02-digital-logic-04}再讲。综合工具的行为细节，见 AMD 的《Vivado Design Suite User Guide: Synthesis》（UG901）\citep{vivado-ug901}，原文地址 \url{https://docs.amd.com/v/u/en-US/ug901-vivado-synthesis}。}
+
+\subsection{模块：Verilog 的“元件”}
+
+Verilog 用\textbf{模块}（module）来组织电路，一个模块就是一个“元件”：有名字、有引脚（端口）、里面有逻辑。一个 \texttt{.v} 文件通常放一个模块，文件名和模块名一致，方便查找。
+
+\Needspace{11\baselineskip}
+一个最简单的模块长这样：
+
+\begin{lstlisting}[language=Verilog,numbers=none]
+module and2 (
+    input  wire a,
+    input  wire b,
+    output wire y
+);
+    assign y = a & b;      // 一个与门
+endmodule
+\end{lstlisting}
+
+逐行看：\texttt{module and2 ( ... );} 声明模块名和端口表；端口表里每一行是一个引脚，格式是“方向 类型 位宽 名字”：
+
+\begin{itemize}
+  \item \textbf{方向}：\texttt{input}（输入）、\texttt{output}（输出）、\texttt{inout}（双向：同一根线既能被外部驱动、也能驱动外部，常用于总线这类共享数据线的场合）；
+  \item \textbf{类型}：写 \texttt{wire} 或 \texttt{reg}，新手阶段建议一律写清楚，别省；
+  \item \textbf{位宽}：\texttt{[7:0]} 表示 8 位，最高位是 7、最低位是 0；不写就是 1 位；
+  \item \textbf{名字}：小写字母加下划线，例如 \texttt{rst\_n}。
+\end{itemize}
+
+于是 \texttt{input wire [7:0] data} 读作“8 位宽的输入线 data”，\texttt{output reg [3:0] q} 读作“4 位宽、在 \texttt{always} 里赋值的输出 q”。\textbf{输出的类型可以写 \texttt{wire} 也可以写 \texttt{reg}，取决于它在模块内部怎么被驱动}——这一点下一小节会讲透。
+
+模块内部用到的常数，建议写成\textbf{参数}，而不是散落的数字：
+
+\begin{lstlisting}[language=Verilog,numbers=none]
+module counter #(
+    parameter integer WIDTH = 8          // 外部可以覆盖：counter #(.WIDTH(16)) u_c (...)
+) (
+    input  wire             clk,
+    input  wire             rst_n,
+    output reg  [WIDTH-1:0] cnt
+);
+\end{lstlisting}
+
+\texttt{parameter} 是模块的“可调参数”：写代码时给一个默认值，例化时可以换成别的值。比如上面的 \texttt{WIDTH} 默认是 8，某处需要 16 位的计数器，就在例化这个模块时把参数换成 16（写法是 \texttt{\#(.WIDTH(16))}，下一段讲例化时就会看到）——这个实例里的 \texttt{WIDTH} 就变成了 16，而模块本身的代码一行都不用改。这就是“外部可以覆盖”的意思：同一份模块代码，用不同的参数值定制出不同的实例。\texttt{localparam} 则只在模块内部使用，外部改不了，适合放由参数算出来的中间常量（比如后面分频器里的 \texttt{CNT\_MAX}）。
+
+模块之间靠\textbf{例化}（instantiation）组装。例化的意思就是“在这个电路里放一个该元件”，然后给它接上线：
+
+\begin{lstlisting}[language=Verilog,numbers=none]
+and2 u_and2 (          // u_and2 是这一份实例的名字
+    .a (a),            // .端口名 (连到哪根线)
+    .b (b),
+    .y (y)
+);
+\end{lstlisting}
+
+\textbf{一律用“名字连接”}（\texttt{.a (a)}），不要用按位置连接。按位置连接一旦模块端口顺序变了，线就全接错，而且编译器不会提醒你。
+
+写多了你会发现，模块划分有几条很朴素的道理：\textbf{一个模块只做一件事}；模块之间只通过端口打交道，内部实现对外不可见；端口就是“合同”，合同定好了，两边可以各写各的。当模块之间需要传递“数据什么时候有效”这类约定时，就要用到握手（比如 \texttt{valid}/\texttt{ready}）——这属于接口协议的内容，后面讲总线握手时会展开。
+
+\subsection{wire 与 reg：新手最容易混的一对}
+
+这是大多数初学者最先摔的一跤；哪怕是学过、但很久没再动手写 Verilog 的人，回来也常在它上面犯迷糊。我们把它彻底讲清楚。
+
+先给结论，再讲原因：\textbf{\texttt{wire} 是“导线”，\texttt{reg} 是“能在过程块里被赋值的变量”}。它们不是两种“数据类型”，而是两种\textbf{身份}——这根信号是“被别人驱动的连线”，还是“在 \texttt{always} 里被赋值的变量”。\cref{tab:02-hdl-wire-reg}是速览，看不懂没关系，往下读。
+
+\begin{table}[htbp]
+\centering
+\caption{\texttt{wire} 与 \texttt{reg} 速览}
+\label{tab:02-hdl-wire-reg}
+\begin{tabularx}{\linewidth}{@{}P{27mm}YY@{}}
+\toprule
+对比项 & \texttt{wire}：一根线 & \texttt{reg}：一个过程变量 \\
+\midrule
+它是什么 & 导线，自己不产生值 & 变量，能在过程块里保存值 \\
+谁来驱动 & \texttt{assign}、模块输出端口、门级原语 & 只能在 \texttt{always}/\texttt{initial} 里被赋值 \\
+能在 \texttt{always} 里赋值吗 & 不能，会直接报错 & 能，而且必须这样才能用 \\
+综合成什么 & 连线本身 & 看写法：组合 \texttt{always} 出组合逻辑，时钟 \texttt{always} 出触发器 \\
+最常见用途 & 模块之间的连线、\texttt{assign} 的结果 & 计数器、状态机、流水线寄存器、组合逻辑的中间结果 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsubsection*{wire：一根必须有人驱动的导线}
+
+把 \texttt{wire} 想成一根水管：它自己不产生水，水从哪来？从“水龙头”来。\texttt{wire} 也一样，它自己不产生值，值必须由某个\textbf{驱动源}给它：
+
+\begin{itemize}
+  \item \texttt{assign} 连续赋值（例如 \texttt{assign y = a \& b;}）；
+  \item 子模块的输出端口（例化时把子模块的输出接到这根线上）；
+  \item 门级原语：直接在代码里点名调用基本门，例如 \texttt{and u1 (y, a, b);}，把与门、或门像元件一样摆进电路；做门级建模或很小的电路时很直观。
+\end{itemize}
+
+\textbf{一根 \texttt{wire} 只能有一个驱动源}。两处 \texttt{assign} 同时驱动它，等于把两个门电路的输出用导线短接在一起，综合工具会报多驱动（multi-driven）错误。另外，\texttt{wire} 不能在 \texttt{always} 里被赋值——它没有“存值”的能力，你也没法给一根导线“写入”。
+
+注意两个默认规则：不写类型的信号默认就是 \texttt{wire}；\texttt{input} 端口默认也是 \texttt{wire}。
+
+\subsubsection*{reg：一个能在过程块里被赋值的变量}
+
+\texttt{reg} 是“过程赋值”的目标：只有它能在 \texttt{always}（以及仿真用的 \texttt{initial}）里出现在等号左边。把 \texttt{reg} 想成一张便签纸：\texttt{always} 块执行到赋值那一句，就把值写上去；下次再执行到这里之前，便签上一直是上次写的值。
+
+\textbf{但这里有一个巨大的误解：\texttt{reg} 不等于寄存器。}它会不会变成触发器，完全取决于 \texttt{always} 怎么写：
+
+\begin{lstlisting}[language=Verilog,numbers=none]
+// 假设模块里声明了 reg y; 和输入 a、b、clk
+// 写法一：组合逻辑——综合结果只有一个与门，没有触发器
+always @(*)
+    y = a & b;
+
+// 写法二：时序逻辑——综合结果是“与门 + 一个触发器”
+always @(posedge clk)
+    y <= a & b;
+\end{lstlisting}
+
+两段代码里 \texttt{y} 都声明成 \texttt{reg}，但写法一综合出来是纯组合逻辑（一个与门），写法二才会多出一个触发器。所以更准确的说法是：\textbf{\texttt{reg} 是“语法身份”，不是“硬件身份”}。硬件身份由 \texttt{always} 的敏感列表决定：\texttt{@(*)} 是组合逻辑，\texttt{@(posedge clk)} 是时序逻辑。
+
+\KeyPoint{两条铁律，先背下来}{\textbf{1.} \texttt{assign} 的左边只能是 \texttt{wire}；\textbf{2.} \texttt{always} 里被赋值的信号必须声明成 \texttt{reg}。反过来记也成立：\texttt{wire} 只配 \texttt{assign}（或模块输出），\texttt{reg} 只配 \texttt{always}。新手期的报错，十有八九是这两条里的一条被违反了。}
+
+违反铁律时，综合工具会给出很直白的报错。\cref{tab:02-hdl-errors}列了四个最常见的，建议混个眼熟——看到关键词就知道往哪改。
+
+\begin{table}[htbp]
+\centering
+\caption{四个最常见的信号报错，以及背后的规则}
+\label{tab:02-hdl-errors}
+\begin{tabularx}{\linewidth}{@{}P{44mm}P{42mm}Y@{}}
+\toprule
+你写了什么 & 报错里的关键词 & 怎么改 \\
+\midrule
+\texttt{assign} 的左边是 \texttt{reg} & \texttt{is not a net}、\texttt{illegal left-hand side} & 左边声明成 \texttt{wire}，或者把这句挪进 \texttt{always} \\
+\texttt{always} 里给 \texttt{wire} 赋值 & \texttt{not a variable}、\texttt{cannot be assigned in a procedural block} & 把声明改成 \texttt{reg}；输出端口写成 \texttt{output reg} \\
+同一根 \texttt{wire} 被两处 \texttt{assign} 驱动 & \texttt{multi-driven net} & 合并成一份逻辑，只保留一个驱动源 \\
+组合 \texttt{always} 漏了分支 & \texttt{inferring latch}（警告） & 补 \texttt{else}、补 \texttt{default}，覆盖所有情况 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+最后补一个很实用的细节：\textbf{输出端口的类型要跟着驱动方式走}。由 \texttt{assign} 或子模块输出驱动的，写 \texttt{output wire}；在 \texttt{always} 里赋值的，写 \texttt{output reg}。你可以翻回本节开头的 \texttt{and2}：它的 \texttt{y} 是 \texttt{assign} 驱动的，所以写 \texttt{output wire}；而流水灯工程的顶层输出 \texttt{led} 是子模块的输出，也写 \texttt{output wire}——是不是对上了？
+
+顺带一提：现代工程大量使用 SystemVerilog，它引入了 \texttt{logic} 这个类型，一个词就能同时代替 \texttt{wire} 和 \texttt{reg}（但同一根信号不能既被 \texttt{assign} 驱动又被 \texttt{always} 赋值）。本书仍用 Verilog-2001 的写法，因为它在各种工具里最通用；等你把两种身份彻底分清，再换 \texttt{logic} 只是顺手的事。
+
+\subsubsection*{三个常见误解，对照检查一下}
+
+\begin{itemize}
+  \item \textbf{误解一：“\texttt{reg} 一定会变成寄存器。”} 不对。组合 \texttt{always} 里的 \texttt{reg} 就是一根组合逻辑的输出线，不带任何触发器。
+  \item \textbf{误解二：“组合逻辑必须用 \texttt{assign} 写。”} 不对。组合逻辑既可以用 \texttt{assign}（适合一句话能写完的），也可以用 \texttt{always @(*)}（适合分支多的），综合结果等价。
+  \item \textbf{误解三：“\texttt{wire} 也可以先存一个值再改。”} 不对。\texttt{wire} 没有存储能力，它的值永远等于驱动源此刻给的值。
+\end{itemize}
+
+\subsection{assign：像焊线一样的连续赋值}
+
+\texttt{assign} 描述的是一条\textbf{永远成立}的连接。写：
+
+\begin{lstlisting}[language=Verilog,numbers=none]
+assign y = a & b;
+\end{lstlisting}
+
+它的意思是：“\texttt{y} 这根线始终等于 \texttt{a} 与 \texttt{b} 的结果”。\texttt{a}、\texttt{b} 任何一个变了，\texttt{y} 立刻跟着变——就像你用导线把一个与门的输出焊到了 \texttt{y} 上，中间没有任何“执行”的概念。这叫\textbf{连续赋值}（continuous assignment）。
+
+几条 \texttt{assign} 之间是并行的，写在上面的不会“先执行”。把 \texttt{assign} 理解成“焊接”，很多困惑就没了：你不会问“第一根导线什么时候通电、第二根什么时候通电”，它们一直通着。
+
+\subsubsection*{位宽、位选与拼接}
+
+\texttt{assign} 最常用的场合，是把若干信号按位拼起来、拆开、做运算：
+
+\begin{lstlisting}[language=Verilog,numbers=none]
+wire [3:0] a, b;
+wire [3:0] sum;
+wire       cout;
+
+assign {cout, sum} = a + b;   // 5 位的结果拆成“进位 + 和”
+assign y = {a[1:0], b[1:0]};  // 拼接：高两位来自 a，低两位来自 b
+assign z = {4{1'b0}};         // 复制：四个 0
+\end{lstlisting}
+
+\cref{tab:02-hdl-ops}把可综合的常用运算符整理在一处。不用背，写的时候回来查就行。
+
+\begin{table}[htbp]
+\centering
+\caption{Verilog 常用运算符一览（可综合部分）}
+\label{tab:02-hdl-ops}
+\begin{tabularx}{\linewidth}{@{}P{34mm}P{44mm}Y@{}}
+\toprule
+运算符 & 含义 & 例子 \\
+\midrule
+\texttt{+} \texttt{-} \texttt{*} \texttt{/} & 算术运算，\texttt{/} 是整除 & \texttt{sum = a + b;} \\
+\texttt{<} \texttt{<=} \texttt{>} \texttt{>=} & 大小比较，结果是 1 位 & \texttt{lt = (a < b);} \\
+\texttt{==} \texttt{!=} & 相等、不等 & \texttt{eq = (a == b);} \\
+\texttt{\&\&} \texttt{||} \texttt{!} & 逻辑与、或、非 & \texttt{ok = a \&\& b;} \\
+\texttt{\&} \texttt{|} \texttt{\textasciicircum} \texttt{\textasciitilde} & 按位与、或、异或、取反 & \texttt{y = a \& b;} \\
+\texttt{<<} \texttt{>>} & 左移、右移 & \texttt{y = a << 2;} \\
+\texttt{\{a, b\}} & 拼接：\texttt{a} 在高位 & \texttt{\{cout, sum\} = a + b;} \\
+\texttt{\{N\{x\}\}} & 把 \texttt{x} 复制 \texttt{N} 份 & \texttt{\{4\{1'b0\}\}} \\
+\texttt{?:} & 条件选择 & \texttt{y = sel ? b : a;} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+条件运算符 \texttt{?:} 是 \texttt{assign} 里的“if”，写二选一特别顺手：
+
+\begin{lstlisting}[language=Verilog,numbers=none]
+assign y = sel ? b : a;        // sel 为 1 选 b，否则选 a
+\end{lstlisting}
+
+嵌套两层就是四选一。不过再复杂就别硬套了，换成 \texttt{always} 加 \texttt{case}，可读性更好。
+
+\subsubsection*{位宽的两个坑}
+
+第一个坑是\textbf{隐式截断}：等号左边的位宽比右边窄时，高位会被悄悄丢掉，只给一条警告。比如把 \texttt{8'hFF} 赋给 4 位的 \texttt{y}，得到的是 \texttt{4'hF}。第二个坑是\textbf{隐式扩展}：右边比左边窄时，无符号数会零扩展——\texttt{assign y = 1'b1;} 赋给 8 位 \texttt{y}，得到 \texttt{0000\_0001}，看起来没问题，但一旦换成有符号数就是符号扩展，行为完全不同。
+
+结论很简单：\textbf{位宽都写清楚，别让工具猜}。常数也养成带位宽的习惯：\texttt{1'b1}、\texttt{4'hA}、\texttt{32'd100}，一眼就能看出它是几位、什么进制。
+
+\subsection{always：把“过程”写成电路}
+
+\texttt{always} 是另一支笔：它把“一段过程”描述成电路。根据敏感列表不同，\texttt{always} 只会写成两种骨架——\textbf{组合逻辑}和\textbf{时序逻辑}，记住这两副骨架，绝大多数代码都是往里填内容。
+
+\begin{lstlisting}[language=Verilog,numbers=none]
+// 骨架 A：组合逻辑，敏感列表写 @(*)
+always @(*) begin
+    // 这里用阻塞赋值 =
+end
+
+// 骨架 B：时序逻辑，时钟上升沿触发，异步复位
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        // 复位值：全部用 <= 赋值
+    end else begin
+        // 正常工作：全部用 <= 赋值
+    end
+end
+\end{lstlisting}
+
+\subsubsection*{组合 always：if 与 case，一条分支都不能漏}
+
+组合 \texttt{always} 里常用 \texttt{if}/\texttt{else} 和 \texttt{case}。这里有个新手必踩的坑：\textbf{如果一个输出在某条分支里没有被赋值，综合工具就会推断出一个锁存器（latch）来“保持原值”}——因为在组合逻辑里，“没赋值”等价于“记住上次的值”，而记住值只能用存储元件实现。
+
+\begin{lstlisting}[language=Verilog,numbers=none]
+// 危险写法：sel=0 时 y 没有任何赋值 → 综合出锁存器
+always @(*)
+    if (sel) y = a;
+
+// 安全写法：所有分支都覆盖
+always @(*)
+    if (sel) y = a;
+    else     y = 1'b0;
+\end{lstlisting}
+
+锁存器不是“错”，但它会带来时序分析上的麻烦，新手工程里基本都是意外产物。综合日志里出现 \texttt{inferring latch} 字样，就该回来检查分支了。用 \texttt{case} 时同理，养成随手写 \texttt{default} 的习惯：
+
+\begin{lstlisting}[language=Verilog,numbers=none]
+always @(*) begin
+    case (sel)
+        2'b00:   y = a;
+        2'b01:   y = b;
+        2'b10:   y = c;
+        default: y = 4'b0000;   // 兜底，顺便避免锁存器
+    endcase
+end
+\end{lstlisting}
+
+\KeyPoint{组合逻辑的纪律}{组合 \texttt{always} 里，\textbf{每一个输出、每一条路径都要有明确的值}。写完问自己一句：把输入的所有组合都走一遍，每个输出都有值吗？有一个组合没值，就会长出锁存器。}
+
+\subsubsection*{时序 always：时钟沿上更新，用非阻塞赋值}
+
+时序 \texttt{always} 的敏感列表里是时钟沿：\texttt{posedge clk} 表示上升沿。代码里所有赋值都用非阻塞 \texttt{<=}，复位分支写在最前面。最典型的例子是计数器：
+
+\begin{lstlisting}[language=Verilog,numbers=none]
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n)
+        cnt <= 8'd0;
+    else if (cnt == 8'd199)
+        cnt <= 8'd0;            // 数到 199 归零，周期 200 拍
+    else
+        cnt <= cnt + 8'd1;
+end
+\end{lstlisting}
+
+注意这里的 \texttt{if/else if/else} 是\textbf{覆盖所有情况}的；但即便不覆盖也没关系——时序 \texttt{always} 里“没写到的分支”表示“保持原值”，这正好是触发器的天然行为。\textbf{这一点和组合 \texttt{always} 恰好相反}：组合里漏赋值会长出锁存器，时序里漏赋值只是“这个周期不变”。所以你会看到很多时序写法故意省掉 \texttt{else}，这不是偷懒，而是利用了这个语义。
+
+\subsubsection*{阻塞 = 与非阻塞 <=：一条必须守的纪律}
+
+\begin{table}[htbp]
+\centering
+\caption{阻塞赋值与非阻塞赋值：一条必须守的纪律}
+\label{tab:02-hdl-blocking}
+\begin{tabularx}{\linewidth}{@{}P{30mm}YY@{}}
+\toprule
+对比项 & 阻塞赋值 \texttt{=} & 非阻塞赋值 \texttt{<=} \\
+\midrule
+什么时候生效 & 这一句执行完，立刻生效 & 先把右边都算好，块结束时统一更新 \\
+后面的语句看到什么 & 看到刚写入的新值 & 看到更新前的旧值 \\
+打个比方 & 像 C 语言，一行一行往下算 & 像所有触发器在同一个时钟沿同时动作 \\
+该用在哪 & 组合逻辑 \texttt{always @(*)} & 时序逻辑 \texttt{always @(posedge clk)} \\
+用反了会怎样 & 时序逻辑里出现“竞争”，仿真和综合对不上 & 组合逻辑里可能多一拍延迟，甚至振荡 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+为什么时序逻辑必须用 \texttt{<=}？看一个经典反例——用阻塞赋值交换两个寄存器：
+
+\begin{lstlisting}[language=Verilog,numbers=none]
+// 想交换 a 和 b？阻塞赋值会失败
+always @(posedge clk) begin
+    a = b;
+    b = a;      // 此时 a 已经变成 b 的旧值，相当于 b = b
+end
+
+// 正确写法：非阻塞赋值“同时”更新
+always @(posedge clk) begin
+    a <= b;
+    b <= a;
+end
+\end{lstlisting}
+
+非阻塞赋值先把右边全部算完，再在时钟沿统一写入——这正是真实触发器的工作方式：所有触发器在同一个时钟沿同时采样旧值。\cref{tab:02-hdl-blocking}把两者的区别放在一起。以后每写一个 \texttt{always}，先问自己一句：这是组合还是时序？该用 \texttt{=} 还是 \texttt{<=}？养成这个习惯，比背语法管用。
+
+\subsubsection*{for 循环：写起来像循环，综合出来是“展开”}
+
+组合 \texttt{always} 里可以用 \texttt{for}，但别用 C 的直觉去理解它：综合时循环会被\textbf{完全展开}，循环次数必须是常数。它最适合“对一组位做同样的操作”，比如算 8 位数据的奇偶校验：
+
+\begin{lstlisting}[language=Verilog,numbers=none]
+integer i;
+always @(*) begin
+    par = 1'b0;
+    for (i = 0; i < 8; i = i + 1)
+        par = par ^ data[i];   // 综合后展开成 8 个异或门
+end
+\end{lstlisting}
+
+最后，把 \texttt{always} 的使用纪律再钉一遍：
+
+\begin{enumerate}
+  \item 一个 \texttt{always} 只描述一件事（一组寄存器，或一段组合逻辑）；
+  \item 组合和时序不要混在同一个块里；
+  \item 时钟只出现在时序 \texttt{always} 的敏感列表里，\textbf{不要在 \texttt{always} 里用逻辑“造时钟”}——分频得到的慢节拍，应该做成使能脉冲，而不是新时钟（后面的流水灯工程里会看到正确写法）。
+\end{enumerate}
+
+\subsection{常见句式速查}
+
+语法讲到这里，常用的“句式”其实就那几种。\cref{tab:02-hdl-patterns}把它们汇总成一张对照表——写代码卡住的时候，先来这里找一行。
+
+\begin{table}[htbp]
+\centering
+\caption{常用句式速查：想要什么，就写什么}
+\label{tab:02-hdl-patterns}
+\begin{tabularx}{\linewidth}{@{}P{42mm}Y@{}}
+\toprule
+想要什么 & 标准写法 \\
+\midrule
+一两句能写完的组合逻辑 & \texttt{assign y = ...;} \\
+分支很多的组合逻辑 & \texttt{always @(*)} 里用 \texttt{if}/\texttt{case}，所有分支都赋值 \\
+每个时钟沿更新的寄存器 & \texttt{always @(posedge clk)}，里面用 \texttt{<=} \\
+带异步复位的寄存器 & \texttt{always @(posedge clk or negedge rst\_n)}，复位写在最前面 \\
+常数与可调参数 & \texttt{parameter}（外部可覆盖）、\texttt{localparam}（模块内部用）\\
+循环移位 & \texttt{\{led[WIDTH-2:0], led[WIDTH-1]\}} \\
+例化子模块 & \texttt{u\_name (.port(sig), ...);}，一律用名字连接 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{完整示例：一个流水灯工程}
+
+语法零件都齐了，现在组装一台完整的机器。目标：\textbf{4 个 LED 每隔 1 秒向左循环移动一位}。这个需求小到刚好能放进一页纸，又足够把本节所有语法点都用一遍。
+
+\textbf{需求与规格}
+
+\begin{itemize}
+  \item 板载时钟 50 MHz，复位按键低电平有效；
+  \item 4 个 LED，高电平点亮；
+  \item 复位后只有最低位 LED 亮，之后每 1 秒移动一位，循环往复。
+\end{itemize}
+
+\textbf{设计拆解}：整件事拆成两个子模块加一个顶层。分频器把 50 MHz 变成 1 Hz 的“节拍”，移位器每来一个节拍挪一位，顶层负责把它们接起来——如\cref{fig:02-hdl-flow}所示。这就是硬件设计最典型的层次化写法：\textbf{顶层只连线，功能在子模块里}。
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1mm, y=1mm,
+  box/.style={draw=Accent, fill=Panel, rounded corners=2pt,
+              minimum width=32mm, minimum height=13mm, align=center, font=\small},
+  sig/.style={font=\small\ttfamily},
+  flow/.style={-{Stealth[length=2mm]}, draw=Brand, thick},
+  tag/.style={font=\scriptsize, text=Muted}]
+  \node[sig] (clk) at (0, 7) {clk};
+  \node[sig] (rst) at (0, -7) {rst\_n};
+  \node[box] (div) at (38, 0) {\textbf{分频器}\\[1pt]\texttt{clk\_div}};
+  \node[box] (shift) at (100, 0) {\textbf{移位器}\\[1pt]\texttt{led\_shifter}};
+  \node[sig] (ledout) at (138, 0) {led[3:0]};
+  \draw[flow] (clk) -- node[pos=0.55, above right, tag]{50 MHz} (div);
+  \draw[flow] (rst) -- (div);
+  \draw[flow] (div) -- node[above, tag]{tick} (shift);
+  \draw[flow] (shift) -- (ledout);
+\end{tikzpicture}
+\caption{流水灯工程的模块划分：分频器产生 1 Hz 节拍，移位器按节拍推动 LED，顶层只负责连线}
+\label{fig:02-hdl-flow}
+\end{figure}
+
+\textbf{文件一：分频器}。\cref{lst:02-hdl-div}是完整源码。
+
+\lstinputlisting[language=Verilog,caption={时钟分频器：\texttt{clk\_div.v}},label={lst:02-hdl-div}]{code/03-hdl/clk_div.v}
+
+这段代码做的其实就一件事：\textbf{数够一定数量的时钟周期，输出一个 tick}。数多少个？算一算：\texttt{CLK\_FREQ} 是 50\,000\,000，对应时钟周期 $1/50\,\text{MHz}=20\,\text{ns}$；\texttt{TICK\_HZ} 是 1，表示每秒要一个 tick；那么两次 tick 之间需要 $1\,\text{s} \div 20\,\text{ns}=5\times10^7$ 个时钟周期。所以 \texttt{CNT\_MAX} 取 $5\times10^7-1=49\,999\,999$：计数器从 0 数到它为止，正好走完 1 秒。
+
+位宽也要对得上：\texttt{cnt} 得能装下 49\,999\,999。$2^{25}=33\,554\,432$ 不够，$2^{26}=67\,108\,864$ 够了，所以 26 位就够用；代码里直接给 32 位，是留余量，也省得换频率时再重算一遍。
+
+另外两个细节。其一，\texttt{CLK\_FREQ}、\texttt{TICK\_HZ} 做成 \texttt{parameter}，换板子、换速度只改例化处的参数，不动模块代码。其二，\texttt{tick} 只高一个时钟周期——它是一个\textbf{使能脉冲}，不是新时钟。这一点很关键：FPGA 的时钟应该走专用的时钟网络，用计数器“分频出一个时钟”去驱动别的 \texttt{always}，在真实工程里是要挨骂的写法。\cref{lst:02-hdl-div}里的做法——“快时钟 + 单周期使能”——才是标准姿势。
+
+\textbf{文件二：移位器}。\cref{lst:02-hdl-shift}只有十几行，但 \texttt{reg}、拼接、时序 \texttt{always}、复位全都在。
+
+\lstinputlisting[language=Verilog,caption={流水灯移位器：\texttt{led\_shifter.v}},label={lst:02-hdl-shift}]{code/03-hdl/led_shifter.v}
+
+注意 \texttt{led} 被声明为 \texttt{output reg}：它在 \texttt{always} 里赋值，按铁律必须是 \texttt{reg}。复位值 \texttt{\{(WIDTH-1)\{1'b0\}\}, 1'b1} 的意思是“复制 \texttt{WIDTH-1} 个 0，再拼上一个 1”——也就是只有最低位亮。移位那句 \texttt{\{led[WIDTH-2:0], led[WIDTH-1]\}} 把最高位丢到最低位，形成循环。还有一个细节：\texttt{else if (tick)} 后面没有 \texttt{else}——没有节拍时什么也不写，触发器自然保持原值，这正是我们想要的。
+
+\textbf{文件三：顶层}。\cref{lst:02-hdl-top}把两个子模块接起来。
+
+\lstinputlisting[language=Verilog,caption={顶层模块：\texttt{led\_flow\_top.v}},label={lst:02-hdl-top}]{code/03-hdl/led_flow_top.v}
+
+顶层里出现了本节讲过的所有“身份”：\texttt{wire tick} 是模块之间的连线，由子模块的输出驱动，所以是 \texttt{wire}；输出 \texttt{led} 也是 \texttt{output wire}，因为它由 \texttt{led\_shifter} 的输出端口驱动；例化时用 \lstinline|#(.WIDTH(16))| 这样的写法覆盖参数，用 \lstinline|.led (led)| 这样的写法按名字连接。你可能会注意到三个文件里一条 \texttt{assign} 都没有——这不是遗漏：本工程的组合逻辑只有“计数器加一”和“拼接移位”，都写在 \texttt{always} 里更自然。\texttt{assign} 和 \texttt{always} 是描述同一类电路的两种笔法，选顺手的用，但\textbf{同一个信号只用一个驱动源}。
+
+\subsection{Vivado 实战：从源码到工程}
+\label{subsec:02-hdl-vivado-lab}
+
+写好的 \texttt{.v} 文件还只是“图纸”。要确认这些图纸真的能变成电路，最直接的办法是把它交给 Vivado：新建工程、把文件加进去、指定顶层，然后综合——综合器会告诉你这段代码对应多少逻辑、有没有写错。
+
+下面的操作以 Vivado 2023.2（ML Edition）为例，其他版本按钮位置可能略有差别，名称基本一致。Vivado 的官方文档都收在 AMD 文档站（\url{https://docs.amd.com}），遇到不认识的按钮或选项，可以在那里按关键词搜。截图里的红框标出了每一步要点的位置。整个流程不需要开发板，也不需要写约束文件；走完之后，你能在 Vivado 里看到自己写的代码“长”成的电路。
+
+% 本节截图多：统一用“图随文走”的非浮动版式，保证图和讲解挨在一起，
+% 也避免几张图被浮动体挤到同一页、或漂到正文后面。
+\newcommand{\HdlFig}[3]{%
+  \par\addvspace{.45\baselineskip}%
+  \noindent\makebox[\linewidth][c]{%
+    \begin{minipage}{.85\linewidth}%
+      \centering
+      \includegraphics[width=\linewidth]{#1}%
+      \captionof{figure}{#2}%
+      \label{#3}%
+    \end{minipage}}%
+  \par\addvspace{.3\baselineskip}%
+}
+
+\subsubsection*{第 1 步：新建工程}
+
+\HdlFig{figures/03-hdl/vivado-01-create-project}{Vivado 欢迎界面：Quick Start 里的 Create Project}{fig:02-hdl-vivado-01}
+
+\HdlFig{figures/03-hdl/vivado-02-project-name}{新建工程向导：工程名与存放路径}{fig:02-hdl-vivado-02}
+
+启动 Vivado，欢迎界面左侧的 \textbf{Quick Start} 区有三个入口（\cref{fig:02-hdl-vivado-01}）：\textbf{Create Project} 新建工程；\textbf{Open Project} 打开已有工程；\textbf{Open Example Project} 打开官方示例工程（想直接读别人写的代码，可以从这里翻）。下方 \textbf{Tasks} 区是常用任务入口（Manage IP 管理 IP 核、Open Hardware Manager 连开发板、Vivado Store 插件商店），\textbf{Learning Center} 是文档和视频教程；新手阶段可以先不管它们。点 \textbf{Create Project}。
+
+向导第一页（\cref{fig:02-hdl-vivado-02}）填两件事：\textbf{Project name}（工程名，截图里是 \texttt{project\_1}，建议改成有意义的名字，比如 \texttt{led\_flow}）和 \textbf{Project location}（工程存放目录）。两个注意点：路径里\textbf{不要有中文和空格}，部分工具和脚本对这类路径支持不好；\textbf{Create project subdirectory} 建议勾上——Vivado 会在你选的目录下再建一个同名子文件夹，把工程文件都收进去，不会和别的东西混在一起。下方的灰字会实时显示“工程最终建在哪”，确认无误再点 \textbf{Next}。
+
+\subsubsection*{第 2 步：选择工程类型}
+
+\HdlFig{figures/03-hdl/vivado-03-project-type}{工程类型：默认 RTL Project，以及两个附属复选框}{fig:02-hdl-vivado-03}
+
+\cref{fig:02-hdl-vivado-03} 是工程类型页。默认的 \textbf{RTL Project} 就是我们要的，它支持添加设计源码、调用 IP、搭 Block Design，并完成综合、实现、仿真、生成比特流——绝大多数数字电路和 CPU 实验都选它。它下面挂了两个复选框：
+
+\begin{itemize}
+  \item \textbf{Do not specify sources at this time}：勾选后，向导会跳过“添加源码”这一步，直接进入选器件；工程建好之后再手动新建或导入 \texttt{.v} 文件。本例勾选了它（图中红框），所以下一步直接选器件。对新手来说这样更顺：先把工程搭好，再安安静静写代码。
+  \item \textbf{Project is an extensible Vitis platform}：这是给 Zynq（ARM + FPGA）做软硬协同准备的，勾选后工程会导出成 Vitis 平台；只写 Verilog、不碰 ARM 的话\textbf{一定不要勾}。
+\end{itemize}
+
+其余四种类型用得很少，但既然列在界面上，就顺便认一认：
+
+\begin{itemize}
+  \item \textbf{Post-synthesis Project}：导入已经综合好的网表文件，不能再修改 RTL，只能做布局布线、时序分析。通常是第三方综合工具输出网表、再用 Vivado 做后端实现时使用。
+  \item \textbf{I/O Planning Project}：没有 RTL 源码，只用来提前规划引脚、查看器件资源；适合“先定引脚、后写代码”的场合。
+  \item \textbf{Imported Project}：把 Synplify、ISE 等旧工具的工程迁移成 Vivado 工程。
+  \item \textbf{Example Project}：直接加载 Vivado 自带的官方示例模板，用来学习示例代码。
+\end{itemize}
+
+拿不准就选 RTL Project；选错了删掉重建，成本很低。
+
+\subsubsection*{第 3 步：选择器件}
+
+\HdlFig{figures/03-hdl/vivado-04-device}{器件选择：Parts 标签页的筛选器与资源表格}{fig:02-hdl-vivado-04}
+
+\cref{fig:02-hdl-vivado-04} 是器件选择页，顶部有两个标签页：
+
+\begin{itemize}
+  \item \textbf{Parts}：直接选裸芯片型号，最常用；适合自己看资源、做实验、做 CPU 设计。
+  \item \textbf{Boards}：按开发板选（比如 Basys3、Nexys A7）。选板子会自动带出板载器件和预设引脚，手上有现成开发板时更省事。
+\end{itemize}
+
+下面有六个筛选下拉，默认都是 All（不过滤）：
+
+\begin{itemize}
+  \item \textbf{Category}：产品大类，FPGA、Zynq 等；
+  \item \textbf{Family}：器件系列，如 Artix-7、Kintex-7、Virtex-7、Zynq；
+  \item \textbf{Package}：封装，决定引脚数量和芯片外形；\textbf{实物开发板的封装必须完全一致}；
+  \item \textbf{Speed}：速度等级，就是型号末尾的 \texttt{-1/-2/-3}，数字越小速度越快、价格也越贵（截图里是 \texttt{-2}，还有低功耗版本的 \texttt{-2L}）；
+  \item \textbf{Temperature}：温度等级（商业级、工业级），课程实验保持 All 即可；
+  \item \textbf{Static power}：静态功耗筛选，普通学习不用管。
+\end{itemize}
+
+右上角的 \textbf{Reset All Filters} 一键清空所有筛选；\textbf{Search} 直接按型号搜，本例输入 \texttt{xc7x325tffg900-2}，列表只剩两条。表格里每一列都是有意义的：
+
+\begin{itemize}
+  \item \textbf{Part}：完整型号，封装和速度等级都包含在型号里；
+  \item \textbf{I/O Pin Count}：芯片总引脚数；\textbf{Available IOBs}：真正能拿来做普通输入输出的引脚数；
+  \item \textbf{LUT Elements}：查找表数量，FPGA 做组合逻辑的基本资源，数字越大能装的逻辑越多；
+  \item \textbf{FlipFlops}：触发器数量，时序逻辑（寄存器）的资源；
+  \item \textbf{Block RAMs}：片上块状存储器（BRAM），存数据、做缓存用；
+  \item \textbf{Ultra RAMs}：更大容量的片上存储，只有高端系列才有；
+  \item \textbf{DSPs}：专门的乘法/乘加单元，做滤波、矩阵运算、AI 推理很常用；
+  \item \textbf{BUFGs}：全局时钟缓冲器，决定时钟能稳定送到全芯片多少地方；
+  \item \textbf{Gb Transceivers}、\textbf{GTPE2 Transceivers}：高速串行收发器，做万兆网、PCIe 这类高速接口才用得到。
+\end{itemize}
+
+\textbf{没有开发板时，器件型号可以先随便选}——综合和看电路图不依赖具体引脚，本节也不上板。本例选的是 Kintex-7 的 \texttt{xc7x325tffg900-2}：二十万出头的 LUT、四十万个触发器，对流水灯来说是“杀鸡用牛刀”，但用来学习绰绰有余。以后有了板子，器件型号可以在工程设置里改，不影响代码。
+
+\subsubsection*{第 4 步：把三个 .v 文件加进工程}
+
+Sources 面板上的 \textbf{+} 号和 Flow Navigator 里的 \textbf{Add Sources} 是同一个入口。\cref{fig:02-hdl-vivado-05} 就是弹出的 Add Sources 对话框，选 \textbf{Add or create design sources}——另外两个选项分别对应约束文件和仿真源码。
+
+\HdlFig{figures/03-hdl/vivado-05-add-sources}{Add Sources：选择添加哪一类源文件}{fig:02-hdl-vivado-05}
+
+三个选项的区别是：
+
+\begin{itemize}
+  \item \textbf{Add or create design sources}：设计源码（\texttt{.v}、\texttt{.vhd}），本步要做的；
+  \item \textbf{Add or create constraints}：约束文件（XDC），本节用不到；
+  \item \textbf{Add or create simulation sources}：仿真源码（testbench），下一节写仿真时再用。
+\end{itemize}
+
+点 Next 之后有两个按钮值得区分：\mbox{\textbf{Add Files}} 用来添加电脑上已经写好的 \texttt{.v} 文件；\mbox{\textbf{Create File}} 则在工程里新建一个空文件。本例用 Create File 新建 \texttt{clk\_div}，对话框如\cref{fig:02-hdl-vivado-06}：
+
+\HdlFig{figures/03-hdl/vivado-06-create-file}{新建源文件：Create Source File 对话框}{fig:02-hdl-vivado-06}
+
+\begin{itemize}
+  \item \textbf{File type}：选 Verilog；
+  \item \textbf{File name}：填 \texttt{clk\_div}，不用自己加 \texttt{.v}，Vivado 会自动补；
+  \item \textbf{File location}：\texttt{Local to Project}，文件放在工程的 \texttt{srcs/sources\_1/new} 目录下；
+  \item 点 \mbox{\textbf{Create File}}，再用同样的办法建 \texttt{led\_shifter} 和 \texttt{led\_flow\_top}，最后点 \mbox{\textbf{Finish}}。
+\end{itemize}
+
+建好的空文件里只有 \texttt{module}/\texttt{endmodule} 骨架，把 2.3.7 的代码贴进去、按 \texttt{Ctrl+S} 保存就行。如果代码早就写好了，也可以一开始就用 Add Files 一次性加进来，效果一样；记得勾选 \textbf{Copy sources into project}，让 Vivado 把文件复制进工程目录，免得以后挪了原始文件、工程就找不到代码。
+
+\subsubsection*{第 5 步：Define Module：用表格定义端口}
+
+新建或添加源文件时，Vivado 会弹出 \textbf{Define Module}（\cref{fig:02-hdl-vivado-07}）：它是一张可视化表格，可以“点着点着”把端口生成到代码里。
+
+\HdlFig{figures/03-hdl/vivado-07-define-module}{Define Module：用表格定义端口，以及未填写时的确认框}{fig:02-hdl-vivado-07}
+
+表格里的每一列分别是：
+
+\begin{itemize}
+  \item \textbf{Module name}：模块名，本例是 \texttt{clk\_div}；
+  \item \textbf{+} / \textbf{-}：增加、删除一行端口；
+  \item \textbf{Port Name}：端口名，比如 \texttt{clk}、\texttt{rst\_n}、\texttt{tick}；
+  \item \textbf{Direction}：方向，input 输入、output 输出、inout 双向；
+  \item \textbf{Bus}：勾选表示这根线是多比特总线（比如 \texttt{[3:0]}），不勾就是一根单比特线；
+  \item \textbf{MSB} / \textbf{LSB}：总线的高位和低位（勾了 Bus 才需要填）。
+\end{itemize}
+
+图里的表格是空的，直接点了 OK，于是弹出确认框：“The module definition has not been changed. Are you sure you want to use these values?”——意思是“表格里没有定义任何端口，确定就这样？”。点 \textbf{Yes}，Vivado 会生成一个空模块，端口自己手写。
+
+两种做法都行：想练手、对方向和位宽印象更深，就像本例这样点 Yes 自己写；想省事，就在表格里把 \texttt{clk}、\texttt{rst\_n}、\texttt{tick} 一次填好再点 OK，Vivado 会自动生成端口代码。新手建议先用第一种——万一写错，编译会报错，正好逼你把 wire/reg 那一节再复习一遍。
+
+\subsubsection*{第 6 步：保存文件，看清层次}
+
+\cref{fig:02-hdl-vivado-08} 左侧的 Sources 面板里已经有 \texttt{clk\_div.v} 和 \texttt{led\_shifter.v}。注意编辑器标签页上的星号 \textbf{*}：它表示这个文件改过但\textbf{还没保存}。
+
+\HdlFig{figures/03-hdl/vivado-08-sources-unsaved}{Sources 面板：文件列表与未保存的 * 标记}{fig:02-hdl-vivado-08}
+
+Vivado 不会自动保存，一定要养成随手 \texttt{Ctrl+S} 的习惯——星号消失，才算真的写进了磁盘。断电、崩溃时没保存的内容会全部丢失，这是很多人踩过的坑。
+
+把 \texttt{led\_flow\_top.v} 加进来、两个子模块也例化好并保存之后，Sources 树会变成层级结构（\cref{fig:02-hdl-vivado-09}）：顶层 \texttt{led\_flow\_top} 下面缩进着 \texttt{u\_clk\_div} 和 \texttt{u\_led\_shifter}，括号里是它们对应的文件；文件名后面的 (2) 表示它下面还挂着两个子模块。换句话说，\textbf{例化不是“注释”，Vivado 真的把子模块挂到了顶层下面}。
+
+\HdlFig{figures/03-hdl/vivado-09-hierarchy}{添加顶层并例化之后，Sources 面板自动显示层次结构}{fig:02-hdl-vivado-09}
+
+顶层的名字在树里是粗体；如果发现顶层不对，右键文件选 \textbf{Set as Top}。一个工程只能有一个顶层。
+
+\subsubsection*{第 7 步：综合——把代码翻译成电路}
+
+动手点按钮之前，先把“综合”这件事说清楚。\textbf{综合}（synthesis）是一次“翻译”：把你写的 Verilog（行为描述、数据流描述）翻译成 FPGA 内部真实存在的基本单元——查找表（LUT）、触发器、块 RAM、DSP、IO 缓冲——以及它们之间的连线。翻译出来的结果叫\textbf{网表}（netlist）。
+
+打个比方：写代码像写菜谱，综合像把菜谱翻译成“第几步、用哪口锅、放多少克料”的工序单。它决定了这道菜要占多少资源、大概能有多快，但不会替你尝味道——\textbf{功能对不对，要靠仿真和上板验证}。综合能发现语法错误、位宽不匹配、多驱动、不可综合的写法（比如在可综合代码里写 \texttt{\#10} 延时）；它发现不了“逻辑写错了但语法合法”的情况。
+
+操作很简单：Flow Navigator → SYNTHESIS → \textbf{Run Synthesis}，弹出的 Launch Runs 对话框如\cref{fig:02-hdl-vivado-10}。
+
+\HdlFig{figures/03-hdl/vivado-10-run-synthesis}{运行综合：Launch Runs 对话框}{fig:02-hdl-vivado-10}
+
+\begin{itemize}
+  \item \textbf{Launch directory}：综合运行目录，默认即可，产物在工程的 \texttt{runs} 目录下；
+  \item \textbf{Launch runs on local host}：在本机运行；\textbf{Number of jobs} 是并行线程数（截图里 8，按 CPU 核心数自动给出），机器弱可以调小；
+  \item \textbf{Generate scripts only}：只生成脚本不真正执行，给服务器批量流程用，学生用不到；
+  \item \textbf{Don't show this dialog again}：以后不再弹这个框；
+  \item 点 \textbf{OK} 开始。
+\end{itemize}
+
+综合要跑一会儿，此时点 \textbf{Project Summary} 页可以看进度（\cref{fig:02-hdl-vivado-11}）。
+
+\HdlFig{figures/03-hdl/vivado-11-synthesis-running}{综合进行中：Project Summary 里的状态与消息}{fig:02-hdl-vivado-11}
+
+Synthesis 区域的 Status 显示 \texttt{Running synth\_design}，Messages 显示 No errors or warnings；右侧 Implementation 还是 Not started（还没到那一步）；下面的 Strategy 是综合策略（Vivado Synthesis Defaults，另有偏面积、偏时序的策略可选），Incremental synthesis 是增量综合（第二次综合才用得上，第一次显示自动选择检查点）。窗口右上角同样显示 \texttt{Running synth\_design}，旁边的 Cancel 可以中止；底部的 Tcl Console 会滚动输出综合日志（耗时、内存等）。也可以点下方的 \textbf{Design Runs} 标签，按 run 查看状态。
+
+综合完成后会弹出 \textbf{Synthesis Completed}（\cref{fig:02-hdl-vivado-12}），三个选项分别对应接下来的动作：
+
+\HdlFig{figures/03-hdl/vivado-12-synthesis-done}{综合完成：三个后续选项}{fig:02-hdl-vivado-12}
+
+\begin{itemize}
+  \item \textbf{Run Implementation}：继续做实现（布局布线），本节不做；
+  \item \textbf{Open Synthesized Design}：打开综合后的设计，看网表和电路图——\textbf{选它}；
+  \item \textbf{View Reports}：直接看报告（资源占用、时序预估等）。
+\end{itemize}
+
+勾上 Don't show this dialog again，下次就不再弹。注意图 12 的 Project Summary 里 Messages 显示 \textbf{1 warning}：\textbf{warning 不是错误}，点开 Messages 逐条看即可，本例的警告不影响结果。还要再强调一次：综合通过不等于功能正确，它只证明“这段代码能翻译成电路”。
+
+\subsubsection*{第 8 步：看一眼电路长什么样}
+
+打开 Synthesized Design 后，界面会切换到网表视图，左侧 Sources 变成 \textbf{Netlist}（Nets 15、Leaf Cells 7，下面挂着 \texttt{u\_clk\_div} 和 \texttt{u\_led\_shifter}），右侧默认打开 \textbf{Schematic} 标签，如\cref{fig:02-hdl-vivado-13}。
+
+\HdlFig{figures/03-hdl/vivado-13-schematic}{综合后的电路图：三个 .v 文件变成了 LUT、触发器和 IO 缓冲}{fig:02-hdl-vivado-13}
+
+图里能认出这些角色：
+
+\begin{itemize}
+  \item \textbf{IBUF}：输入缓冲，把芯片外部进来的信号整形后再送给内部逻辑（\texttt{clk}、\texttt{rst\_n} 都先过它）；
+  \item \textbf{BUFG}：全局时钟缓冲，把时钟接到全芯片的时钟网络；
+  \item 中间两个方框就是 \texttt{clk\_div} 和 \texttt{led\_shifter}，也就是我们写的两个子模块；
+  \item \textbf{OBUF}：输出缓冲，把内部信号送到芯片引脚（\texttt{led[3:0]} 出去之前经过它）；
+  \item 工具栏上的 8 Cells、6 I/O Ports、15 Nets，就是这三个 \texttt{.v} 文件在 FPGA 里的“家底”。
+\end{itemize}
+
+双击 \texttt{u\_clk\_div} 可以进去看内部：计数器、比较器、触发器全变成了 LUT 和 FF；点适应窗口按钮可以看全貌。到这一步，“代码 $\rightarrow$ 电路”的闭环就走完了——你写的 \texttt{always}、\texttt{assign}，最后都变成了这些查找表和触发器。至于让电路在真实板子上跑起来（约束、实现、比特流、下载），是后续实验的内容，本节不展开。
+
+\subsubsection*{走到这里，你已经会了}
+
+回头看，这一节带你完成了这些操作：新建工程（选类型、选器件）、添加或新建源文件、用 Define Module 生成端口、保存并确认顶层、运行综合、打开电路图。还没碰的是约束（XDC）、实现、生成比特流和下载——这些需要一块真实的开发板，留给后续的实验课；没有它们，本节的学习目标（把代码变成工程、再变成电路）已经达成。工程目录可以整体拷走备份，换台电脑装上同版本 Vivado 就能继续。
+
+\subsection{本节小结}
+
+这一节的内容可以压缩成三句话：
+
+\begin{enumerate}
+  \item Verilog 描述的是\textbf{同时存在}的电路，不是顺序执行的程序；
+  \item \texttt{wire} 靠 \texttt{assign} 或模块输出驱动，\texttt{reg} 在 \texttt{always} 里赋值，\texttt{reg} \textbf{不等于}寄存器；
+  \item 组合 \texttt{always} 用 \texttt{=}、覆盖所有分支；时序 \texttt{always} 用 \texttt{<=}、只在时钟沿更新。
+\end{enumerate}
