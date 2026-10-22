@@ -1,0 +1,73 @@
+name: Publish Complete PDF
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Synchronize generated chapter metadata
+        run: |
+          python3 scripts/update-manifest.py
+          python3 scripts/update-modules.py
+
+      - name: Compile complete book
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: main.tex
+          latexmk_use_xelatex: true
+
+      - name: Verify PDF
+        run: |
+          test -s build/main.pdf
+          du -h build/main.pdf
+
+      - name: Upload downloadable PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: complete-book-pdf
+          path: build/main.pdf
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Stage Pages site
+        run: |
+          mkdir -p build/pages
+          cp build/main.pdf build/pages/main.pdf
+          cp .github/pages/index.html build/pages/index.html
+          touch build/pages/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/pages
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

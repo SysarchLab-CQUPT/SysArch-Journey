@@ -35,6 +35,33 @@ Windows 用 `.\scripts\build.ps1`、`.\scripts\clean.ps1`，参数相同。
 **编译产物只会出现在 `build/` 里**，仓库的其它目录都只放源码。编译之后请确认
 `build/main.log` 中没有 `! ` 开头的错误、没有 undefined reference。
 
+## 在线完整 PDF
+
+推送到 `main` 后，GitHub Actions 会自动完整编译一次，并同时：
+
+- 在 Actions 运行记录中保留可下载的 `complete-book-pdf` 构建产物，供核对历史版本。
+- 把最新完整 PDF 发布到 GitHub Pages，浏览器打开预览页即可阅读或下载。
+
+部署完成后，Pages 地址会在 `Publish Complete PDF` 工作流的部署步骤中显示。仓库名未变时，
+通常为：
+
+```text
+https://sysarchlab-cqupt.github.io/SysArch-Journey/
+```
+
+直接打开 PDF 的地址为：
+
+```text
+https://sysarchlab-cqupt.github.io/SysArch-Journey/main.pdf
+```
+
+首次启用时，需要仓库管理员在 GitHub 的 **Settings → Pages → Build and deployment**
+中把 **Source** 设为 **GitHub Actions**。之后可在 **Actions → Publish Complete PDF →
+Run workflow** 手动触发。
+
+公共仓库发布到 Pages 的 PDF 对所有人可见；如果内容暂时不能公开，请使用 Actions 中的
+私有构建产物，不要发布到 Pages。
+
 ## 认领任务
 
 写作任务都在 Issues 里，标题以 `[TASK]` 开头的就是。完整流程：
