@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 560" role="img"><title>rtl-datapath</title>
+<rect width="100%" height="100%" fill="white"/>
+<text x="28" y="35" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="23" fill="#16324f" text-anchor="start">从结构图读出 RTL：五级数据通路与四组流水寄存器</text>
+<rect x="24" y="70" width="200" height="228" rx="8" fill="#f4f8fc" stroke="#d7e1ed"/>
+<text x="40" y="101" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="24" fill="#2563eb" text-anchor="start">IF</text>
+<text x="120" y="100" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" fill="#16324f" text-anchor="start">取指</text>
+<rect x="36" y="132" width="176" height="65" rx="8" fill="#ffffff" stroke="#d7e1ed"/>
+<text x="124" y="159" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#16324f" text-anchor="middle">PC + 指令存储器</text>
+<text x="124" y="182" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#16324f" text-anchor="middle">imem_addr</text>
+<text x="39" y="232" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="start">PC → instr</text>
+<text x="39" y="263" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" fill="#64748b" text-anchor="start">顺序取 PC+4</text>
+<rect x="234" y="128" width="18" height="152" rx="2" fill="#dce9fb" stroke="#2563eb"/>
+<polyline points="212,164 234,164" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polygon points="234,164 225.0,160.0 225.0,168.0" fill="#2563eb"/>
+<polyline points="252,164 282,164" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polygon points="282,164 273.0,160.0 273.0,168.0" fill="#2563eb"/>
+<text x="243" y="320" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="12" fill="#2563eb" text-anchor="middle">IF/ID</text>
+<rect x="270" y="70" width="200" height="228" rx="8" fill="#f4f8fc" stroke="#d7e1ed"/>
+<text x="286" y="101" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="24" fill="#2563eb" text-anchor="start">ID</text>
+<text x="366" y="100" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" fill="#16324f" text-anchor="start">译码</text>
+<rect x="282" y="132" width="176" height="65" rx="8" fill="#ffffff" stroke="#d7e1ed"/>
+<text x="370" y="159" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#16324f" text-anchor="middle">译码器 + 寄存器堆</text>
+<text x="370" y="182" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#16324f" text-anchor="middle">rs1 / rs2 / rd</text>
+<text x="285" y="232" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="start">控制与数据打包</text>
+<text x="285" y="263" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" fill="#64748b" text-anchor="start">WB→ID 同拍旁路</text>
+<rect x="480" y="128" width="18" height="152" rx="2" fill="#dce9fb" stroke="#2563eb"/>
+<polyline points="458,164 480,164" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polygon points="480,164 471.0,160.0 471.0,168.0" fill="#2563eb"/>
+<polyline points="498,164 528,164" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polygon points="528,164 519.0,160.0 519.0,168.0" fill="#2563eb"/>
+<text x="489" y="320" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="12" fill="#2563eb" text-anchor="middle">ID/EX</text>
+<rect x="516" y="70" width="200" height="228" rx="8" fill="#f4f8fc" stroke="#d7e1ed"/>
+<text x="532" y="101" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="24" fill="#2563eb" text-anchor="start">EX</text>
+<text x="612" y="100" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" fill="#16324f" text-anchor="start">执行</text>
+<rect x="528" y="132" width="176" height="65" rx="8" fill="#ffffff" stroke="#d7e1ed"/>
+<text x="616" y="159" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#16324f" text-anchor="middle">前递 MUX + ALU</text>
+<text x="616" y="182" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#16324f" text-anchor="middle">ex_a / ex_b</text>
+<text x="531" y="232" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="start">计算 / 比较 / 目标</text>
+<text x="531" y="263" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" fill="#64748b" text-anchor="start">BEQ 在本级决策</text>
+<rect x="726" y="128" width="18" height="152" rx="2" fill="#dce9fb" stroke="#2563eb"/>
+<polyline points="704,164 726,164" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polygon points="726,164 717.0,160.0 717.0,168.0" fill="#2563eb"/>
+<polyline points="744,164 774,164" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polygon points="774,164 765.0,160.0 765.0,168.0" fill="#2563eb"/>
+<text x="735" y="320" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="12" fill="#2563eb" text-anchor="middle">EX/MEM</text>
+<rect x="762" y="70" width="200" height="228" rx="8" fill="#f4f8fc" stroke="#d7e1ed"/>
+<text x="778" y="101" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="24" fill="#2563eb" text-anchor="start">MEM</text>
+<text x="858" y="100" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" fill="#16324f" text-anchor="start">访存</text>
+<rect x="774" y="132" width="176" height="65" rx="8" fill="#ffffff" stroke="#d7e1ed"/>
+<text x="862" y="159" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#16324f" text-anchor="middle">数据存储器</text>
+<text x="862" y="182" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#16324f" text-anchor="middle">dmem_addr</text>
+<text x="777" y="232" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="start">load / store</text>
+<text x="777" y="263" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" fill="#64748b" text-anchor="start">本例组合读、边沿写</text>
+<rect x="972" y="128" width="18" height="152" rx="2" fill="#dce9fb" stroke="#2563eb"/>
+<polyline points="950,164 972,164" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polygon points="972,164 963.0,160.0 963.0,168.0" fill="#2563eb"/>
+<polyline points="990,164 1020,164" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polygon points="1020,164 1011.0,160.0 1011.0,168.0" fill="#2563eb"/>
+<text x="981" y="320" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="12" fill="#2563eb" text-anchor="middle">MEM/WB</text>
+<rect x="1008" y="70" width="200" height="228" rx="8" fill="#f4f8fc" stroke="#d7e1ed"/>
+<text x="1024" y="101" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="24" fill="#2563eb" text-anchor="start">WB</text>
+<text x="1104" y="100" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" fill="#16324f" text-anchor="start">写回</text>
+<rect x="1020" y="132" width="176" height="65" rx="8" fill="#ffffff" stroke="#d7e1ed"/>
+<text x="1108" y="159" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#16324f" text-anchor="middle">写回 MUX</text>
+<text x="1108" y="182" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#16324f" text-anchor="middle">wb_data</text>
+<text x="1023" y="232" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="start">写入寄存器堆</text>
+<text x="1023" y="263" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13" fill="#64748b" text-anchor="start">valid &amp;&amp; reg_write</text>
+<polyline points="1108,298 1108,355 370,355 370,298" fill="none" stroke="#008575" stroke-width="2"/>
+<polygon points="370,298 366.0,307.0 374.0,307.0" fill="#008575"/>
+<text x="785" y="345" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#008575" text-anchor="start">WB → ID：同拍读写旁路</text>
+<polyline points="744,278 775,278 775,395 560,395 560,298" fill="none" stroke="#008575" stroke-width="2"/>
+<polygon points="560,298 556.0,307.0 564.0,307.0" fill="#008575"/>
+<text x="800" y="395" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#008575" text-anchor="start">EX/MEM → EX：ALU 结果前递</text>
+<polyline points="1108,355 1108,435 605,435 605,298" fill="none" stroke="#008575" stroke-width="2"/>
+<polygon points="605,298 601.0,307.0 609.0,307.0" fill="#008575"/>
+<text x="785" y="425" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#008575" text-anchor="start">MEM/WB → EX：写回值前递</text>
+<polyline points="680,298 680,485 124,485 124,298" fill="none" stroke="#bc3f4a" stroke-width="2" stroke-dasharray="7 4"/>
+<polygon points="124,298 120.0,307.0 128.0,307.0" fill="#bc3f4a"/>
+<text x="150" y="475" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#bc3f4a" text-anchor="start">redirect：重定向 PC，冲刷 IF/ID 与 ID/EX</text>
+<text x="28" y="521" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#64748b" text-anchor="start">蓝色：正向数据流    绿色：旁路 / 前递    红色虚线：控制返回    竖条：上升沿保存状态</text>
+</svg>

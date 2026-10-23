@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="从计算机组成原理到 Verilog RTL：五级流水线、前递、Load-Use 暂停和分支冲刷。完整教材、可运行代码、真实波形与逐拍交互。">
+<title>4.04–4.05 从结构图到 RTL | 从指令集到智能应用</title>
+<style>
+:root{color-scheme:light;--ink:#18324d;--muted:#65758b;--blue:#2461cf;--line:#dce5ed;--body:18px;--green:#087f70}
+*{box-sizing:border-box}html{scroll-behavior:auto;scroll-padding-top:100px}body{margin:0;background:#f6f8fb;color:var(--ink);font:var(--body)/1.95 system-ui,-apple-system,"Microsoft YaHei",sans-serif}a{color:var(--blue);text-decoration-thickness:1px;text-underline-offset:4px}a:hover{color:#143d80}button,summary{cursor:pointer}button{font:inherit}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #e19e31;outline-offset:3px}header{position:sticky;top:0;z-index:20;background:#fffffff2;border-bottom:1px solid var(--line);backdrop-filter:blur(10px)}.topbar{max-width:1420px;margin:auto;padding:13px 28px;display:flex;gap:20px;align-items:center;font-size:14px}.brand{font-weight:750;color:var(--ink);text-decoration:none;margin-right:auto}.topbar button{background:#eef3fa;border:1px solid var(--line);border-radius:7px;padding:3px 10px}.progress{height:3px;background:#e6edf5}.progress span{display:block;height:100%;width:0;background:var(--green)}.layout{max-width:1420px;margin:0 auto;display:grid;grid-template-columns:265px minmax(0,1fr);gap:40px;padding:35px 28px 75px}aside{align-self:start;position:sticky;top:95px;max-height:calc(100vh - 120px);overflow-y:auto;padding-right:12px;font-size:13px;line-height:1.7}aside strong{font-size:15px}.toc a{display:block;padding:7px 9px;text-decoration:none;border-left:2px solid transparent;color:var(--muted)}.toc a.sub{padding-left:19px;font-size:12px}.toc a.active,.toc a:hover{border-left-color:var(--blue);background:#eaf0fa;color:var(--blue)}main{min-width:0;max-width:1000px}.hero{padding:12px 0 38px;border-bottom:1px solid var(--line);margin-bottom:34px}.eyebrow{font-size:12px;letter-spacing:.15em;color:var(--green);font-weight:750}.hero h1{font-size:clamp(29px,3.1vw,44px);line-height:1.4;letter-spacing:-.02em;margin:16px 0}.hero p{color:var(--muted);max-width:760px}.chips{display:flex;flex-wrap:wrap;gap:9px;font-size:12px}.chips span{background:#e8f3f0;border:1px solid #cde7df;padding:4px 12px;border-radius:20px;color:#086c5d}.mobile-toc{display:none}.textbook{background:white;padding:36px 42px;border:1px solid var(--line);border-radius:12px}.textbook p{margin:16px 0;text-align:justify}.textbook h2{font-size:28px;line-height:1.5;margin:50px 0 22px;padding-bottom:14px;border-bottom:2px solid #dbe7f3}.textbook h2:first-child{margin-top:0}.textbook h3{font-size:21px;line-height:1.65;margin:38px 0 14px}.textbook h4,.textbook h5{font-size:18px;margin:26px 0 8px}.textbook h2,.textbook h3,.textbook span[id],figure[id]{scroll-margin-top:100px}.textbook blockquote{background:#edf6f2;border-left:4px solid var(--green);padding:8px 20px;margin:24px 0;border-radius:0 8px 8px 0}.textbook blockquote p{margin:10px 0}figure{margin:30px 0;padding:14px;background:#fafcfe;border:1px solid var(--line);border-radius:9px}figure img{width:100%;height:auto;cursor:zoom-in;display:block}figcaption{font-size:13px;color:var(--muted);line-height:1.75;margin-top:12px}.table-scroll{overflow-x:auto;margin:26px 0}table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.8;min-width:460px}caption{caption-side:top;text-align:left;font-weight:700;margin-bottom:10px}thead{background:#edf3fa}td,th{padding:12px 13px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}td p,th p{margin:0!important}tbody tr:nth-child(even){background:#f8fafc}code{font: .84em/1.8 Consolas,"Cascadia Code",monospace;background:#eef2f7;padding:2px 4px;border-radius:4px;overflow-wrap:anywhere}pre{position:relative;overflow:auto;background:#142b42;color:#e3edf6;border-radius:9px;padding:45px 20px 20px;font:14px/1.8 Consolas,monospace;margin:20px 0;tab-size:4;white-space:pre;max-width:100%}pre code{font:inherit;padding:0;background:transparent;color:inherit;white-space:pre;overflow-wrap:normal}pre .kw{color:#8fc4ff}pre .co{color:#a6b8c9}pre .dv,pre .bn,pre .fl{color:#9fdfc3}pre .dt{color:#9ccfff}pre .st{color:#f1d391}.copy{position:absolute;right:10px;top:8px;border:1px solid #526b84;background:#243f58;color:#edf5fc;border-radius:5px;padding:3px 10px;font-size:12px}ul,ol{padding-left:1.65em}li{padding:3px 0}math{font-size:1.04em}math[display="block"]{overflow-x:auto;display:block;padding:14px 0}.csl-bib-body{font-size:14px;line-height:1.8}.csl-entry{margin:15px 0;overflow-wrap:anywhere}
+#explorer{margin:35px 0;background:white;padding:28px;border:1px solid var(--line);border-radius:12px}#explorer h2{font-size:25px;margin:0 0 16px}.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.controls button{border:0;border-radius:7px;background:var(--blue);color:white;padding:7px 13px;font-size:14px}.controls input{flex:1;min-width:140px}.stages{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin:22px 0}.stage{background:#f1f5fb;border-top:4px solid var(--blue);padding:13px;border-radius:6px;min-height:122px}.stage b{display:block;font-size:21px}.stage span{font:13px/1.8 Consolas,monospace;overflow-wrap:anywhere}.bubble{border-color:#9babbc;color:#586c82}.status{padding:16px;background:#eaf5f0;border-left:4px solid var(--green);font-size:15px;min-height:90px}.note{font-size:13px;color:var(--muted)}details summary{padding:10px 0;font-size:15px;font-weight:650}footer{font-size:13px;color:var(--muted);padding:28px 0}dialog{max-width:96vw;width:1400px;border:1px solid var(--line);border-radius:12px;padding:16px;background:white;color:var(--ink)}dialog::backdrop{background:#102439bb}.dialog-head{display:flex;justify-content:space-between;align-items:center;padding:0 0 12px;font-size:14px}.dialog-head button{border:1px solid var(--line);border-radius:6px;background:#eef3fa;padding:5px 16px}.image-frame{overflow:auto;max-height:80vh}.image-frame img{width:max(100%,1150px);max-width:none;display:block}
+@media(max-width:1000px){.layout{grid-template-columns:1fr;padding:22px 18px;gap:0}aside{display:none}.mobile-toc{display:block;background:white;border:1px solid var(--line);border-radius:8px;margin-bottom:22px;padding:6px 14px}.mobile-toc .toc{max-height:55vh;overflow:auto}.topbar{padding:10px 16px;gap:12px}.topbar .optional{display:none}.textbook{padding:24px 22px}.textbook h2{font-size:25px}}
+@media(max-width:600px){:root{--body:17px}.layout{padding:16px 10px}.topbar{font-size:12px;gap:10px}.brand{font-size:13px}.textbook{padding:21px 16px}.hero{padding:10px 10px 27px}.stages{grid-template-columns:1fr 1fr}.stage:last-child{grid-column:1/-1}.stage{min-height:98px}#explorer{padding:20px 14px}pre{font-size:12px;padding-left:14px;padding-right:14px}table{font-size:13px}figure{padding:8px;margin-left:-4px;margin-right:-4px}}
+@media print{header,aside,.mobile-toc,.copy,.controls{display:none}.layout{display:block;padding:0}.textbook{padding:0;border:0}body{background:white;font-size:11pt}figure,pre,table{break-inside:avoid}pre{white-space:pre-wrap;color:#16324f;background:#f4f6f8}.textbook h2{break-before:page}a{color:inherit}}
+</style>
+</head>
+<body>
+<header><div class="topbar"><a class="brand" href="../../../../index.html">从指令集到智能应用</a><a href="#explorer">逐拍演示</a><a class="optional" href="https://github.com/SysarchLab-CQUPT/SysArch-Journey/tree/main/chapters/04-processor-core/code/04-pipeline">配套源码</a><a class="optional" href="../../../../main.pdf">全书 PDF</a><button id="font-size" aria-label="切换正文字号">A+</button></div><div class="progress" aria-hidden="true"><span id="reading-progress"></span></div></header>
+<div class="layout">
+<aside><strong>本章阅读目录</strong><nav class="toc" id="desktop-toc" aria-label="章节目录"></nav></aside>
+<main>
+<div class="hero"><div class="eyebrow">CHAPTER 04 · 从结构图到 RTL</div><h1>让五级流水线<br>从图纸走进代码</h1><p>读懂每一根连线、每一组流水寄存器和每一次暂停。沿着同一段指令，串起电路结构、Verilog 实现与实际仿真波形。</p><div class="chips"><span>4.04 / 4.05 完整教材</span><span>6 张可放大矢量图</span><span>8 组仿真通过</span><span>无需 FPGA 即可复现</span></div></div>
+<details class="mobile-toc"><summary>展开阅读目录</summary><nav class="toc" id="mobile-toc" aria-label="移动端章节目录"></nav></details>
+<article class="textbook" id="textbook">
+<h2 id="五级流水线从结构图到-rtl">4.04 五级流水线：从结构图到 RTL</h2>
+<div id="sec:04-processor-core-04">
+
+</div>
+<h3 id="先把一条指令的工作分开再让多条指令重叠">4.04.1 先把一条指令的工作分开，再让多条指令重叠</h3>
+<p>单周期处理器把取指、译码、读寄存器、运算、访存和写回串在一个时钟周期内。 画数据通路时，我们很容易沿着箭头说出一条指令走过哪些部件；开始写 RTL 时， 更重要的问题却是：<strong>哪些信号只是当前时刻的组合结果，哪些信号必须保存到下一拍？</strong> 五级流水线正是围绕这个问题重新安排状态边界。</p>
+<p>本节以第 4.02 节的单周期思想为起点，把一条指令的处理划分为 IF（取指）、ID（译码与读寄存器）、EX（执行）、MEM（访存）和 WB（写回）。 相邻阶段之间加入流水寄存器，保存该条指令后面还要使用的数据和控制信息。 划分完成后，同一周期内可以同时有五条不同的指令分别占据五个阶段。 每一级中的组合电路并行工作，在同一个上升沿把结果交给下一级。</p>
+<p>本节结束时，读者应当能够从结构图中圈出状态元件，把跨级信号整理成字段表， 并解释一个时钟边沿上四组流水寄存器为什么同时更新却不会让指令一下穿过四级。 第 4.05 节继续解决重叠执行带来的数据相关和控制相关。 读者应先完成<a href="../../../../index.html">第 2.4 节</a>的模块、组合逻辑和时序逻辑练习。 这里沿用前文“先想电路、再写代码”的方法，不重复 Verilog 基础语法，也不把实验扩展成一颗完整 CPU。</p>
+<blockquote>
+<p><strong>本实验的明确边界</strong></p>
+<p>数据宽度为 32 位，顺序、单发射、五级流水；只实现 ADD、SUB、ADDI、LW、SW 和 BEQ。 不包含异常、中断、CSR、Cache、乘除法、总线等待、字节访存和完整 RV32I 合规性。 因此文中的“教学数据通路”不能直接标记为完整 RV32I 处理器。</p>
+</blockquote>
+<h3 id="先写时序合同才能判断结构图是否正确">4.04.2 先写时序合同，才能判断结构图是否正确</h3>
+<p>流水线的分级是一种微架构选择，指令集并不规定必须采用五级结构。 RV32I 规定寄存器、指令编码和可见效果，例如 x0 恒为零、LW 按有效地址取一个字、 BEQ 比较两个寄存器并使用相对当前指令 PC 的分支偏移<span class="citation" data-cites="ch4-rv32i">(<a href="#ref-ch4-rv32i" role="doc-biblioref">RISC-V International 2026</a>)</span>。 指令在哪一级读寄存器、存储器何时返回数据、分支在哪一级决策，则必须由实现者说明。 本实验采用<a href="#tab:ch4-contract">表 4.1</a> 的时序合同，后面的暂停次数和波形均在这些条件下成立。</p>
+<div id="tab:ch4-contract">
+
+</div>
+<div class="table-scroll"><table>
+<caption>表 4.1 教学数据通路的时序合同</caption>
+<thead>
+<tr>
+<th style="text-align: left;">项目</th>
+<th style="text-align: left;">本实验的约定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">时钟与复位</td>
+<td style="text-align: left;">上升沿触发；高电平同步复位。仿真周期为 10 ns。</td>
+</tr>
+<tr>
+<td style="text-align: left;">取指接口</td>
+<td style="text-align: left;">独立指令存储器，组合读；PC 稳定后，本周期内得到指令。</td>
+</tr>
+<tr>
+<td style="text-align: left;">数据接口</td>
+<td style="text-align: left;">独立数据存储器，组合读、上升沿写；只接受对齐的 32 位字访问。</td>
+</tr>
+<tr>
+<td style="text-align: left;">寄存器堆</td>
+<td style="text-align: left;">两个组合读端口、一个上升沿写端口；显式提供 WB 到 ID 的同拍旁路。</td>
+</tr>
+<tr>
+<td style="text-align: left;">分支</td>
+<td style="text-align: left;">BEQ 在 EX 比较并计算目标；默认顺序取指，分支成立时重定向。</td>
+</tr>
+<tr>
+<td style="text-align: left;">完成时间</td>
+<td style="text-align: left;">ALU 结果在 EX 结束时可供后续级使用；load 数据在 MEM 结束时可供后续级使用。</td>
+</tr>
+<tr>
+<td style="text-align: left;">结构资源</td>
+<td style="text-align: left;">指令存储器与数据存储器分离，本实验不产生二者争用同一端口的结构冒险。</td>
+</tr>
+</tbody>
+</table></div>
+<p>这里的组合读存储器是为了把注意力集中在流水线控制。 FPGA 的同步块 RAM 通常要求先在时钟边沿采样地址，再输出数据；AXI 和 Cache 还可能插入不定长等待。 因此不能把本例的数组简单替换成这些资源，就继续沿用“load-use 总是停一拍”的结论。 接入 SoC 时，应先核对请求何时被接受、响应何时有效，以及等待期间哪些流水级需要保持。 更一般的 ready/valid 背压协议属于接口扩展，不在本例的固定延迟模型内。</p>
+<h3 id="三种结构三种-rtl-阅读方法">4.04.3 三种结构，三种 RTL 阅读方法</h3>
+<figure data-latex-placement="htbp">
+<img src="../../figures/04-pipeline/rtl-mapping.svg" />
+<div id="fig:ch4-mapping">
+
+</div>
+<figcaption>图 4.3 组合逻辑与时序状态的对应关系。图形由代码生成，SVG 与 PDF 使用同一组几何元素。</figcaption>
+</figure>
+<h5 id="寄存器保存跨周期的状态">寄存器保存跨周期的状态。</h5>
+<p>结构图中的寄存器不是一根被命名的数据线，而是保存旧值的状态元件。 <code>always @(posedge clk)</code> 中的非阻塞赋值描述上升沿采样。 若某个分支没有对寄存器赋值，该寄存器保留原值；这正是时钟使能的行为。 代码中的 <code>reg</code> 只是一种 Verilog 变量类型，是否综合成触发器要看赋值所在的过程，不能仅凭声明判断。</p>
+<h5 id="mux-选择当前要使用的输入">MUX 选择当前要使用的输入。</h5>
+<p><code>assign y = sel ? b : a;</code> 表示二选一组合电路。 在流水线里，PC 选择器决定顺序地址还是分支目标，ALU 输入选择器决定寄存器值还是立即数， WB 选择器决定 ALU 结果还是载入数据。 选择器本身不使指令“进入下一拍”；只有结果被寄存器采样，状态才发生推进。</p>
+<h5 id="alu-根据输入持续计算">ALU 根据输入持续计算。</h5>
+<p>加法和减法可直接用运算符表达。本实验使用一个控制位 <code>alu_sub</code> 选择加减。 综合器可以据此实现共享的加减电路，具体门级实现由综合优化决定。 组合逻辑中的默认赋值则保证每条路径都有确定输出，避免无意引入锁存器。</p>
+<div id="tab:ch4-rtl-map">
+
+</div>
+<div class="table-scroll"><table>
+<caption>表 4.2 从结构图到代码时应追问什么</caption>
+<thead>
+<tr>
+<th style="text-align: left;">图上的部件</th>
+<th style="text-align: left;">本例代码形式</th>
+<th style="text-align: left;">阅读时的关键问题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">PC 寄存器</td>
+<td style="text-align: left;">上升沿过程 + 使能</td>
+<td style="text-align: left;">复位、重定向、暂停、顺序推进，谁的优先级更高？</td>
+</tr>
+<tr>
+<td style="text-align: left;">流水寄存器</td>
+<td style="text-align: left;">一组非阻塞赋值</td>
+<td style="text-align: left;">数据、目的寄存器号和控制信号是否属于同一条指令？</td>
+</tr>
+<tr>
+<td style="text-align: left;">译码器</td>
+<td style="text-align: left;">完整默认值 + case</td>
+<td style="text-align: left;">这条指令真正读取哪些源寄存器，后面需要哪些控制？</td>
+</tr>
+<tr>
+<td style="text-align: left;">寄存器堆</td>
+<td style="text-align: left;">数组 + 双组合读 + 单时序写</td>
+<td style="text-align: left;">x0 是否保持零；WB 和 ID 同拍访问同一地址时得到什么？</td>
+</tr>
+<tr>
+<td style="text-align: left;">MUX / ALU</td>
+<td style="text-align: left;">连续赋值或组合过程</td>
+<td style="text-align: left;">选择条件来自哪一级；输入是旧读值还是前递后的新值？</td>
+</tr>
+<tr>
+<td style="text-align: left;">存储器写口</td>
+<td style="text-align: left;">地址、数据、写使能</td>
+<td style="text-align: left;">写使能是否受有效位控制，错误路径能否造成写入？</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="把数据通路切成五级">4.04.4 把数据通路切成五级</h3>
+<figure data-latex-placement="htbp">
+<img src="../../figures/04-pipeline/rtl-datapath.svg" />
+<div id="fig:ch4-datapath">
+
+</div>
+<figcaption>图 4.4 五级数据通路的主要数据流和控制返回路径。竖条表示流水寄存器；图中省略了部分逐位连线。</figcaption>
+</figure>
+<p>IF 用当前 PC 访问指令存储器，把取回的指令和该指令的 PC 交给 IF/ID。 ID 解析指令、读取寄存器并形成立即数，把执行所需的信息交给 ID/EX。 EX 计算算术结果或访存有效地址；BEQ 也在这里比较，并计算目标地址。 MEM 对 load 读取数据、对 store 写入数据。非访存指令在这一阶段只传递结果。 WB 在 ALU 结果与载入数据之间选择，更新目的寄存器。</p>
+<p>以 <code>lw x4, 0(x0)</code> 为例，EX 做的是 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn><mo>+</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">0+0</annotation></semantics></math> 的地址计算，MEM 才读取地址 0 对应的数据， WB 再写 x4。以 <code>sw x3, 0(x0)</code> 为例，EX 同样计算地址，但还必须把 x3 的值保存到 EX/MEM， MEM 才能用它作为写数据。<strong>地址和写数据是两条不同的路径。</strong> store 不写通用寄存器，它的 <code>reg_write</code> 必须为 0。</p>
+<h5 id="增加流水级不等于单条指令更快">增加流水级不等于单条指令更快。</h5>
+<p>若各级组合延迟为 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>t</mi><mi>i</mi></msub><annotation encoding="application/x-tex">t_i</annotation></semantics></math>，流水寄存器开销为 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>t</mi><mi>r</mi></msub><annotation encoding="application/x-tex">t_r</annotation></semantics></math>，时钟周期需满足 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mrow><mi mathvariant="normal">c</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">k</mi></mrow></msub><mo>≥</mo><msub><mrow><mi mathvariant="normal">max</mi><mo>&#8289;</mo></mrow><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>+</mo><msub><mi>t</mi><mi>r</mi></msub></mrow><annotation encoding="application/x-tex">T_{\mathrm{clk}}\geq\max_i(t_i)+t_r</annotation></semantics></math>。理想情况下，<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math> 条指令经过五级流水需要 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>+</mo><mn>4</mn></mrow><annotation encoding="application/x-tex">N+4</annotation></semantics></math> 个周期；单条指令仍然要跨过五级。 举一个只用于理解的数值例子：单周期组合路径为 10 ns，五级各为 2 ns，寄存器开销为 0.2 ns。 单条指令的流水延迟为 11 ns，但长指令流的完成间隔可接近 2.2 ns。 这些数字不是本工程的综合测量结果；本实验只验证功能与周期行为，不报告可达到的 FPGA 主频。</p>
+<h3 id="流水寄存器保存的是一条指令的上下文">4.04.5 流水寄存器保存的是“一条指令的上下文”</h3>
+<p>最常见的错误是只保存计算数据，却让控制信号直接使用 ID 当前译出的结果。 当一条 load 已经进入 MEM 时，ID 中可能是一条 add。若 MEM 仍使用当前 ID 的 <code>mem_read</code>， 访存行为就由另一条指令控制了。因此，控制信号也必须逐级寄存。 <a href="#tab:ch4-fields">表 4.3</a> 给出本例实际字段与后续用途，读者可以逐项与 <code>pipeline_demo.v</code> 的声明对应。</p>
+<div id="tab:ch4-fields">
+
+</div>
+<div class="table-scroll"><table>
+<caption>表 4.3 四组流水寄存器中的内容</caption>
+<thead>
+<tr>
+<th style="text-align: left;">边界</th>
+<th style="text-align: left;">字段类别</th>
+<th style="text-align: left;">下一阶段为什么需要它</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">IF/ID</td>
+<td style="text-align: left;">valid、pc、instr</td>
+<td style="text-align: left;">ID 需要机器指令，分支后续需要原始 PC。</td>
+</tr>
+<tr>
+<td style="text-align: left;">ID/EX</td>
+<td style="text-align: left;">valid、pc、rv1/rv2、rs1/rs2、rd、imm；use1/use2、rw、mr、mw、ai、sub、br</td>
+<td style="text-align: left;">EX 使用操作数、立即数和 ALU/分支控制；源寄存器号供前递比较，后级控制继续随指令传递。</td>
+</tr>
+<tr>
+<td style="text-align: left;">EX/MEM</td>
+<td style="text-align: left;">valid、pc、result、store、rd；rw、mr、mw</td>
+<td style="text-align: left;">result 是 ALU 结果或有效地址，store 是前递后的写数据，MEM 据 mr/mw 执行访存。</td>
+</tr>
+<tr>
+<td style="text-align: left;">MEM/WB</td>
+<td style="text-align: left;">valid、pc、result、load、rd；rw、mr</td>
+<td style="text-align: left;">mr 选择写回值，rd 指定写入对象，rw 指定是否写回。</td>
+</tr>
+</tbody>
+</table></div>
+<p>其中缩写 <code>rw/mr/mw</code> 分别表示寄存器写、存储器读和存储器写， <code>ai/sub/br</code> 分别表示 ALU 使用立即数、减法和分支。 为了便于波形定位，PC 在本例中一直传到 WB；它不是每一种最小数据通路都必须保留到最后的功能字段。 同样，<code>commit_pc</code> 等输出是观察接口，用来核对写回，不代表已经实现了处理器的异常提交机制。</p>
+<h5 id="valid-决定这一格是否装着有效指令">valid 决定这一格是否装着有效指令。</h5>
+<p>当 <code>valid=0</code> 时，其他字段可以保留旧数据。 寄存器写、存储器写、分支重定向和冒险检测都必须检查相应的 valid。 这样只清有效位就能让空泡失去所有副作用，无需把整组数据清零。 这也解释了仿真中为何可能看见无效级内存在旧地址、旧目的寄存器号甚至 X： 判断电路是否执行了操作，必须同时看有效位和使能，不能孤立地读一条数据总线。</p>
+<h5 id="一次上升沿只前进一级">一次上升沿只前进一级。</h5>
+<p>假设边沿前 ID/EX 保存指令 A，EX/MEM 保存指令 B。 边沿到来时，EX/MEM 接收由 A 计算出的结果，同时 MEM/WB 接收 B 的访存或运算结果。 非阻塞赋值的右值在更新前求值，再统一更新目标寄存器， 因此 MEM/WB 不会在同一个边沿接收到刚更新进 EX/MEM 的 A。 把这些过程按源文件从上往下理解成软件执行顺序，会得出错误的流水线行为。</p>
+<p><span id="lst:ch4-registers"></span></p>
+<h5 id="代码-4.1pcifid-与-idex-的实际更新逻辑">代码 4.1：PC、IF/ID 与 ID/EX 的实际更新逻辑</h5>
+<div class="sourceCode" id="cb1" data-language="Verilog"><pre class="sourceCode verilog"><code class="sourceCode verilog"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">// IF: synchronous reset &gt; redirect &gt; hold/advance.</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">always</span> <span class="op">@(</span><span class="kw">posedge</span> clk<span class="op">)</span> <span class="kw">begin</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>rst<span class="op">)</span> imem_addr <span class="op">&lt;=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>        <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span>pc_en<span class="op">)</span> imem_addr <span class="op">&lt;=</span> redirect <span class="op">?</span> redirect_pc <span class="op">:</span> imem_addr <span class="op">+</span> <span class="dv">4</span><span class="op">;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">end</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Flush has priority over enable: killed instructions must not survive.</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">always</span> <span class="op">@(</span><span class="kw">posedge</span> clk<span class="op">)</span> <span class="kw">begin</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>rst <span class="op">||</span> ifid_flush<span class="op">)</span> <span class="kw">begin</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>            ifid_valid <span class="op">&lt;=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        <span class="kw">end</span> <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span>ifid_en<span class="op">)</span> <span class="kw">begin</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>            ifid_valid <span class="op">&lt;=</span> <span class="dv">1</span><span class="op">;</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>            ifid_pc <span class="op">&lt;=</span> imem_addr<span class="op">;</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>            ifid_instr <span class="op">&lt;=</span> imem_rdata<span class="op">;</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>        <span class="kw">end</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">end</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Hold PC and IF/ID on load-use, but INSERT A BUBBLE into ID/EX.</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">always</span> <span class="op">@(</span><span class="kw">posedge</span> clk<span class="op">)</span> <span class="kw">begin</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>rst <span class="op">||</span> idex_flush<span class="op">)</span> <span class="kw">begin</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>            idex_valid <span class="op">&lt;=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>        <span class="kw">end</span> <span class="kw">else</span> <span class="kw">begin</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>            idex_valid <span class="op">&lt;=</span> ifid_valid <span class="op">&amp;&amp;</span> d_legal<span class="op">;</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>            idex_pc <span class="op">&lt;=</span> ifid_pc<span class="op">;</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>            idex_rv1 <span class="op">&lt;=</span> d_rv1<span class="op">;</span> idex_rv2 <span class="op">&lt;=</span> d_rv2<span class="op">;</span> idex_imm <span class="op">&lt;=</span> d_imm<span class="op">;</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>            idex_rs1 <span class="op">&lt;=</span> d_rs1<span class="op">;</span> idex_rs2 <span class="op">&lt;=</span> d_rs2<span class="op">;</span> idex_rd <span class="op">&lt;=</span> d_rd<span class="op">;</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>            idex_use1 <span class="op">&lt;=</span> d_use1<span class="op">;</span> idex_use2 <span class="op">&lt;=</span> d_use2<span class="op">;</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>            idex_rw <span class="op">&lt;=</span> d_rw<span class="op">;</span> idex_mr <span class="op">&lt;=</span> d_mr<span class="op">;</span> idex_mw <span class="op">&lt;=</span> d_mw<span class="op">;</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>            idex_ai <span class="op">&lt;=</span> d_ai<span class="op">;</span> idex_sub <span class="op">&lt;=</span> d_sub<span class="op">;</span> idex_br <span class="op">&lt;=</span> d_br<span class="op">;</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>        <span class="kw">end</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    <span class="kw">end</span></span></code></pre></div>
+<p>代码中的 <code>ifid_en=0</code> 使 IF/ID 保持，而 <code>idex_flush=1</code> 使下一拍 EX 为空泡。 二者作用对象不同，不能笼统地替换为“全流水暂停”。 后级在这种情况下仍继续推进，如<a href="#lst:ch4-late">代码 4.2</a> 所示。</p>
+<p><span id="lst:ch4-late"></span></p>
+<h5 id="代码-4.2exmem-与-memwb-继续接收旧指令的结果">代码 4.2：EX/MEM 与 MEM/WB 继续接收旧指令的结果</h5>
+<div class="sourceCode" id="cb2" data-language="Verilog"><pre class="sourceCode verilog"><code class="sourceCode verilog"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Older instructions continue, even while the front end is paused/flushed.</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">always</span> <span class="op">@(</span><span class="kw">posedge</span> clk<span class="op">)</span> <span class="kw">begin</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>rst<span class="op">)</span> exmem_valid <span class="op">&lt;=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        <span class="kw">else</span> <span class="kw">begin</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>            exmem_valid <span class="op">&lt;=</span> idex_valid<span class="op">;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>            exmem_pc <span class="op">&lt;=</span> idex_pc<span class="op">;</span> exmem_result <span class="op">&lt;=</span> ex_result<span class="op">;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>            exmem_store <span class="op">&lt;=</span> ex_rs2<span class="op">;</span> exmem_rd <span class="op">&lt;=</span> idex_rd<span class="op">;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>            exmem_rw <span class="op">&lt;=</span> idex_rw<span class="op">;</span> exmem_mr <span class="op">&lt;=</span> idex_mr<span class="op">;</span> exmem_mw <span class="op">&lt;=</span> idex_mw<span class="op">;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>        <span class="kw">end</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">end</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">always</span> <span class="op">@(</span><span class="kw">posedge</span> clk<span class="op">)</span> <span class="kw">begin</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>rst<span class="op">)</span> memwb_valid <span class="op">&lt;=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        <span class="kw">else</span> <span class="kw">begin</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>            memwb_valid <span class="op">&lt;=</span> exmem_valid<span class="op">;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>            memwb_pc <span class="op">&lt;=</span> exmem_pc<span class="op">;</span> memwb_rd <span class="op">&lt;=</span> exmem_rd<span class="op">;</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>            memwb_result <span class="op">&lt;=</span> exmem_result<span class="op">;</span> memwb_load <span class="op">&lt;=</span> dmem_rdata<span class="op">;</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>            memwb_rw <span class="op">&lt;=</span> exmem_rw<span class="op">;</span> memwb_mr <span class="op">&lt;=</span> exmem_mr<span class="op">;</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        <span class="kw">end</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">end</span></span></code></pre></div>
+<h3 id="译码的任务是产生电路需要的控制不只是辨认名字">4.04.6 译码的任务是产生电路需要的控制，不只是辨认名字</h3>
+<p>本例保留了少量真实 RISC-V 指令编码，使汇编、机器码和 RTL 能逐一对照。 <a href="#tab:ch4-decode">表 4.4</a> 中的控制不是所有 CPU 通用的标准接口，而是这套数据通路需要的内部信号。 完整译码位于 <code>decoder.v</code>；不支持的编码令 <code>legal=0</code>， 测试平台见到有效的非法指令会停止仿真。这是教学范围检查，不能替代真正的非法指令异常。</p>
+<div id="tab:ch4-decode">
+
+</div>
+<div class="table-scroll"><table>
+<caption>表 4.4 本例指令与控制信号的对应关系；1 表示启用</caption>
+<thead>
+<tr>
+<th style="text-align: left;">指令</th>
+<th style="text-align: center;">use1</th>
+<th style="text-align: center;">use2</th>
+<th style="text-align: center;">rw</th>
+<th style="text-align: center;">mr</th>
+<th style="text-align: center;">mw</th>
+<th style="text-align: center;">ai</th>
+<th style="text-align: center;">sub</th>
+<th style="text-align: center;">br</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">ADD</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">SUB</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">ADDI</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">LW</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">SW</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">BEQ</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>uses_rs1</code> 和 <code>uses_rs2</code> 尤其值得注意。 ADDI 的指令位 <code>[24:20]</code> 是立即数的一部分，不是第二源寄存器。 虽然代码总能从这些位切出一个数作为 <code>rs2</code>，它并不意味着这条指令真的读取了那个寄存器。 冒险检测只有在 use 位为 1 时才比较对应地址，才能避免误暂停。</p>
+<p>立即数也属于数据通路。I 型立即数由 <code>instr[31:20]</code> 符号扩展； S 型要把 <code>instr[31:25]</code> 与 <code>instr[11:7]</code> 拼接后符号扩展； B 型要重排离散字段并补最低位零。 BEQ 的目标用 <code>idex_pc + idex_imm</code> 计算，而不能用当前 IF 的 PC， 因为决定分支时 IF 已经在读取更年轻的指令。</p>
+<h3 id="寄存器堆的同拍读写必须说清楚">4.04.7 寄存器堆的同拍读写必须说清楚</h3>
+<p>本实验的寄存器堆在上升沿写入，在组合路径上读取。 x0 读口直接返回零，写口丢弃对 x0 的写入。 为了使仿真与不同物理实现之间的行为一致，当 WB 正在写入 ID 所读取的地址时， 组合读口直接选择 WB 的写数据。这条 WB 到 ID 的旁路与下一节的 WB 到 EX 前递不是同一件事。</p>
+<h5 id="代码-双读单写寄存器堆与显式-wb-到-id-旁路">代码 ：双读单写寄存器堆与显式 WB 到 ID 旁路</h5>
+<div class="sourceCode" id="cb3" data-language="Verilog"><pre class="sourceCode verilog"><code class="sourceCode verilog"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ot">`timescale 1ns/1ps</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">module</span> regfile <span class="op">(</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">input</span> <span class="dt">wire</span> clk<span class="op">,</span> rst<span class="op">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">input</span> <span class="dt">wire</span> <span class="op">[</span><span class="dv">4</span><span class="op">:</span><span class="dv">0</span><span class="op">]</span> rs1<span class="op">,</span> rs2<span class="op">,</span> rd<span class="op">,</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">input</span> <span class="dt">wire</span> we<span class="op">,</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">input</span> <span class="dt">wire</span> <span class="op">[</span><span class="dv">31</span><span class="op">:</span><span class="dv">0</span><span class="op">]</span> wd<span class="op">,</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">output</span> <span class="dt">wire</span> <span class="op">[</span><span class="dv">31</span><span class="op">:</span><span class="dv">0</span><span class="op">]</span> rv1<span class="op">,</span> rv2</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">reg</span> <span class="op">[</span><span class="dv">31</span><span class="op">:</span><span class="dv">0</span><span class="op">]</span> regs <span class="op">[</span><span class="dv">0</span><span class="op">:</span><span class="dv">31</span><span class="op">];</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="dt">integer</span> i<span class="op">;</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">always</span> <span class="op">@(</span><span class="kw">posedge</span> clk<span class="op">)</span> <span class="kw">begin</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>rst<span class="op">)</span> <span class="kw">begin</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>            <span class="kw">for</span> <span class="op">(</span>i <span class="op">=</span> <span class="dv">0</span><span class="op">;</span> i <span class="op">&lt;</span> <span class="dv">32</span><span class="op">;</span> i <span class="op">=</span> i <span class="op">+</span> <span class="dv">1</span><span class="op">)</span> regs<span class="op">[</span>i<span class="op">]</span> <span class="op">&lt;=</span> <span class="dv">0</span><span class="op">;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>        <span class="kw">end</span> <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span>we <span class="op">&amp;&amp;</span> rd <span class="op">!=</span> <span class="dv">0</span><span class="op">)</span> <span class="kw">begin</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>            regs<span class="op">[</span>rd<span class="op">]</span> <span class="op">&lt;=</span> wd<span class="op">;</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>        <span class="kw">end</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">end</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Explicit WB -&gt; ID bypass avoids reliance on simulator scheduling or</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// a particular register-file primitive&#39;s read-during-write behavior.</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">assign</span> rv1 <span class="op">=</span> <span class="op">(</span>rs1 <span class="op">==</span> <span class="dv">0</span><span class="op">)</span> <span class="op">?</span> <span class="bn">32&#39;b0</span> <span class="op">:</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>                 <span class="op">(</span>we <span class="op">&amp;&amp;</span> rd <span class="op">==</span> rs1<span class="op">)</span> <span class="op">?</span> wd <span class="op">:</span> regs<span class="op">[</span>rs1<span class="op">];</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">assign</span> rv2 <span class="op">=</span> <span class="op">(</span>rs2 <span class="op">==</span> <span class="dv">0</span><span class="op">)</span> <span class="op">?</span> <span class="bn">32&#39;b0</span> <span class="op">:</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>                 <span class="op">(</span>we <span class="op">&amp;&amp;</span> rd <span class="op">==</span> rs2<span class="op">)</span> <span class="op">?</span> wd <span class="op">:</span> regs<span class="op">[</span>rs2<span class="op">];</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="kw">endmodule</span></span></code></pre></div>
+<p>为什么需要这条路径？设生产者在 WB、消费者在 ID。 在同一上升沿，寄存器堆的数组和消费者的 ID/EX 都发生非阻塞赋值。 若消费者在边沿前看到的是数组旧值，就可能把旧值带入 EX；等到下一周期，生产者又已经离开 MEM/WB， EX 的前递网络也无法再从它取得数据。显式旁路让 ID 在该边沿前就看到正确的新值，消除了这个约定空白。</p>
+<p>复位清零整个寄存器数组是为了让教学波形与测试初值可重复，并不是 RISC-V 对所有通用寄存器复位值的要求。 真实 FPGA 实现还要考虑资源推断、复位扇出和存储器原语的限制。 本例不据此给出资源占用或时序收敛结论。</p>
+<h3 id="先运行一个能逐拍追踪的程序">4.04.8 先运行一个能逐拍追踪的程序</h3>
+<p>下面的贯穿程序既包含算术结果前递，也包含 store 数据前递、load-use 相关和 taken branch。 左列是字节地址，中列是仿真真正载入的机器码，右列是对应汇编。 <code>run.py</code> 生成这三者，因此读者可以直接回到 <code>program.hex</code> 核对实验输入。</p>
+<p><span id="lst:ch4-program"></span></p>
+<h5 id="代码-4.4贯穿两个小节的仿真程序">代码 4.4：贯穿两个小节的仿真程序</h5>
+<pre><code>0000  00500093  addi x1, x0, 5
+0004  00108133  add x2, x1, x1
+0008  401101b3  sub x3, x2, x1
+000c  00302023  sw x3, 0(x0)
+0010  00002203  lw x4, 0(x0)
+0014  002202b3  add x5, x4, x2
+0018  00f00313  addi x6, x0, 15
+001c  00628663  beq x5, x6, +12
+0020  06300393  addi x7, x0, 99
+0024  00702223  sw x7, 4(x0)
+0028  00628433  add x8, x5, x6
+002c  00802423  sw x8, 8(x0)</code></pre>
+<p>顺序执行的预期结果是：x1=5，x2=10，x3=5，地址 0 写入 5； 随后 x4 从地址 0 载入 5，x5=15，x6=15。 地址 <code>0x1c</code> 的 BEQ 成立，跳到 <code>0x28</code>，因此 x7 保持复位值 0， 地址 4 保持测试平台初值 32，x8=30，地址 8 最后写入 30。 “地址 4 保持 32”比“没有看到一次异常写入”更容易做成自动判定。</p>
+<h3 id="实验入口与文件之间的关系">4.04.9 实验入口与文件之间的关系</h3>
+<p>实验的最低要求是一台能运行 Python 和 Icarus Verilog 的电脑，不需要 FPGA 开发板。 Python 负责生成输入、执行独立的顺序指令模型和比对结果； Icarus Verilog 实际执行 RTL 与测试平台并输出 VCD<span class="citation" data-cites="ch4-iverilog">(<a href="#ref-ch4-iverilog" role="doc-biblioref">Icarus Verilog contributors 2026</a>)</span>。 仅凭 Python 的参考结果不能证明 RTL 正确，必须完成两者的比较。</p>
+<p>在仓库根目录运行：</p>
+<blockquote>
+<p><code>python chapters/04-processor-core/code/04-pipeline/run.py</code></p>
+</blockquote>
+<p>命令默认使用 PATH 中的 <code>iverilog</code> 与 <code>vvp</code>。 核内文件是 Verilog-2001，测试平台使用少量 SystemVerilog 功能，所以联合编译选择 <code>-g2012</code>。 核心模块另通过了 <code>-g2001</code> 语法检查；本稿记录的通过结果均来自 Icarus。</p>
+<p>所有生成的运行产物位于 <code>build/rtl-pipeline/</code>。 每个案例都有机器码、汇编对照、<code>trace.csv</code>、<code>events.csv</code>、<code>wave.vcd</code> 和仿真日志。 前者记录周期状态，后者记录真实发生的寄存器写回和存储器写入；VCD 可以在 GTKWave 中逐信号观察。 图解网页 <code>code/04-pipeline/index.html</code> 可以直接用浏览器打开，拖动周期滑块查看五级中的指令。</p>
+<h3 id="第一次运行先确认输入再检查输出">4.04.10 第一次运行：先确认输入，再检查输出</h3>
+<ol>
+<li><p>在终端运行 <code>python --version</code>、<code>iverilog -V</code> 和 <code>vvp -V</code>， 确认 Python 与仿真器已经能被找到。仅浏览配套网页不需要安装这些工具。</p></li>
+<li><p>在仓库根目录执行上一小节的 <code>run.py</code> 命令。 脚本先编译五个硬件模块和测试平台，然后分别运行八个案例。</p></li>
+<li><p>终端中每个案例应显示 <code>"status": "PASS"</code>，最后显示 <code>PASS: 8 programs</code>。这意味着寄存器写回、存储器写入和本例指定的周期约束都通过了检查； 仅生成 VCD 文件并不代表测试通过。</p></li>
+<li><p>打开 <code>build/rtl-pipeline/walkthrough/program.txt</code>，先核对地址与汇编； 再打开同目录的 <code>events.csv</code>，确认地址 0 写入 5、地址 8 写入 30，且没有地址 4 的写入。</p></li>
+<li><p>最后打开 <code>wave.vcd</code> 或网页逐拍演示，从 C4、C7、C11 三个关键点观察数据从哪里来。 先明确要验证的事件，再选择信号，比一次加入全部信号更容易理解。</p></li>
+</ol>
+<div id="tab:ch4-first-run">
+
+</div>
+<div class="table-scroll"><table>
+<caption>表 4.5 首次复现实验时的定位顺序</caption>
+<thead>
+<tr>
+<th style="text-align: left;">现象</th>
+<th style="text-align: left;">先检查什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">找不到 iverilog 或 vvp</td>
+<td style="text-align: left;">确认仿真器已安装，并将其可执行文件目录加入 PATH。</td>
+</tr>
+<tr>
+<td style="text-align: left;">编译出现重复模块</td>
+<td style="text-align: left;">只编译五个完整模块与测试平台，不把 <code>listings/</code> 的教材摘录重复加入。</td>
+</tr>
+<tr>
+<td style="text-align: left;">能生成波形，但脚本报错</td>
+<td style="text-align: left;">阅读失败案例的 <code>simulation.log</code>，再比较 <code>events.csv</code>；不要忽略非零退出状态。</td>
+</tr>
+<tr>
+<td style="text-align: left;">波形比教材“早一拍”</td>
+<td style="text-align: left;">检查游标在上升沿之前还是之后；本文按边沿前、NBA 更新前采样。</td>
+</tr>
+<tr>
+<td style="text-align: left;">无效级内出现 X</td>
+<td style="text-align: left;">同时检查该级 valid 与副作用使能；本例只复位有效位，不清空所有载荷。</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>阅读 RTL 的顺序</strong></p>
+<p>先读接口时序合同，再读流水寄存器字段；随后沿一条指令追踪数据和控制，最后加入前递、暂停与冲刷。 先弄清每个信号属于哪一条指令、哪一个周期，比先背诵控制信号名称更有用。</p>
+</blockquote>
+<h3 id="小结与思考">4.04.11 小结与思考</h3>
+<p>本节把结构图中的寄存器、选择器、运算器和连线映射成实际 RTL。 流水线的关键新增状态是四组流水寄存器；它们不仅传递数据，也传递控制和有效位。 下一节将看到，只要结果就绪时间与使用时间不一致，普通的逐级传递就需要前递或暂停配合。</p>
+<ol>
+<li><p>如果把 MEM 的写使能直接连接到 ID 的 <code>d_mw</code>，哪两条不同年龄的指令会被混在一起？</p></li>
+<li><p>若一组流水寄存器的 valid 为 0，但数据中仍有非零数值，是否必须清零数据才能保证正确？请列出需要门控的副作用。</p></li>
+<li><p>若将组合读数据存储器改成同步读 BRAM，应该先检查哪一条时序合同，而不是直接修改暂停计数？</p></li>
+<li><p>在 WB 与 ID 同拍使用 x1 的情况下，为什么寄存器堆使用非阻塞写并不足以保证 ID 获得新值？</p></li>
+</ol>
+<h2 id="基本性能优化冒险前递暂停与冲刷">4.05 基本性能优化：冒险、前递、暂停与冲刷</h2>
+<div id="sec:04-processor-core-05">
+
+</div>
+<h3 id="从数据相关走到这一拍拿不到数据">4.05.1 从“数据相关”走到“这一拍拿不到数据”</h3>
+<p>考虑两条相邻指令：<code>addi x1, x0, 5</code> 与 <code>add x2, x1, x1</code>。 第一条生成 x1，第二条读取 x1，二者存在写后读相关（RAW）。 在本例流水线中，第二条到达 ID 时，第一条还没有到 WB，寄存器堆里仍然是旧 x1。 但“寄存器堆尚未更新”并不等于“芯片内没有正确结果”：第一条的 ALU 已经能够在 EX 末产生 5。 前递就是把这个尚未正式写回的值，送到真正需要它的位置。</p>
+<p>因此应把两个概念分开：<strong>数据相关是指令序列的属性，数据冒险是当前实现的时序约束。</strong> 同一组相关指令，在单周期实现中可能不用处理，在不同分级或存储器时序的流水线中可能需要不同的暂停。 分析时总是先问“生产者何时得到数据”和“消费者在哪一级使用数据”。</p>
+<p>本例按序发射、按序写回，寄存器源值在 ID 读取，不存在后发指令抢先完成写回造成的 WAW 问题， 也不会让后发指令提前覆盖先发指令尚未读取的值而产生 WAR 冒险。 这些结论依赖本例的顺序结构，不能直接迁移到多周期功能单元或乱序处理器。 结构冒险在本例中通过分离指令与数据存储器端口避免；本节主要处理 RAW 和分支控制冒险。</p>
+<h3 id="把前递接在消费者使用数据的位置">4.05.2 把前递接在“消费者使用数据”的位置</h3>
+<figure data-latex-placement="htbp">
+<img src="../../figures/05-hazard/forward-paths.svg" />
+<div id="fig:ch4-forward">
+
+</div>
+<figcaption>图 4.5 两路源操作数前递及其使用者。store 的写数据与 ALU 的立即数输入是不同路径。</figcaption>
+</figure>
+<p>执行级需要两个真实源值：<code>ex_a</code> 和 <code>ex_rs2</code>。 前递网络在 ID/EX 保存的读值、EX/MEM 的 ALU 结果和 MEM/WB 的最终写回值之间选择。 之后 ALU 第二输入还要经过立即数选择器，形成 <code>ex_b</code>。 这两个选择步骤不能合并为“B 输入一定来自 rs2”：ADDI、LW 和 SW 的地址计算都需要立即数。</p>
+<p><span id="lst:ch4-operands"></span></p>
+<h5 id="代码-4.5操作数前递alu-输入选择与分支比较">代码 4.5：操作数前递、ALU 输入选择与分支比较</h5>
+<div class="sourceCode" id="cb5" data-language="Verilog"><pre class="sourceCode verilog"><code class="sourceCode verilog"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="dt">wire</span> <span class="op">[</span><span class="dv">31</span><span class="op">:</span><span class="dv">0</span><span class="op">]</span> ex_a <span class="op">=</span> <span class="op">(</span>forward_a <span class="op">==</span> <span class="bn">2&#39;b10</span><span class="op">)</span> <span class="op">?</span> exmem_result <span class="op">:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>                       <span class="op">(</span>forward_a <span class="op">==</span> <span class="bn">2&#39;b01</span><span class="op">)</span> <span class="op">?</span> wb_data <span class="op">:</span> idex_rv1<span class="op">;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">wire</span> <span class="op">[</span><span class="dv">31</span><span class="op">:</span><span class="dv">0</span><span class="op">]</span> ex_rs2 <span class="op">=</span> <span class="op">(</span>forward_b <span class="op">==</span> <span class="bn">2&#39;b10</span><span class="op">)</span> <span class="op">?</span> exmem_result <span class="op">:</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>                         <span class="op">(</span>forward_b <span class="op">==</span> <span class="bn">2&#39;b01</span><span class="op">)</span> <span class="op">?</span> wb_data <span class="op">:</span> idex_rv2<span class="op">;</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Store/branch use ex_rs2; ALU&#39;s second operand may instead be immediate.</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">wire</span> <span class="op">[</span><span class="dv">31</span><span class="op">:</span><span class="dv">0</span><span class="op">]</span> ex_b <span class="op">=</span> idex_ai <span class="op">?</span> idex_imm <span class="op">:</span> ex_rs2<span class="op">;</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">wire</span> <span class="op">[</span><span class="dv">31</span><span class="op">:</span><span class="dv">0</span><span class="op">]</span> ex_result <span class="op">=</span> idex_sub <span class="op">?</span> ex_a <span class="op">-</span> ex_b <span class="op">:</span> ex_a <span class="op">+</span> ex_b<span class="op">;</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">wire</span> redirect <span class="op">=</span> idex_valid <span class="op">&amp;&amp;</span> idex_br <span class="op">&amp;&amp;</span> ex_a <span class="op">==</span> ex_rs2<span class="op">;</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">wire</span> <span class="op">[</span><span class="dv">31</span><span class="op">:</span><span class="dv">0</span><span class="op">]</span> redirect_pc <span class="op">=</span> idex_pc <span class="op">+</span> idex_imm<span class="op">;</span></span></code></pre></div>
+<p>对 <code>sw x3, 0(x0)</code> 来说，<code>ex_a</code> 是地址基址，<code>ex_b</code> 是立即数 0， <code>ex_rs2</code> 才是即将写入内存的数据。若把未经前递的 <code>idex_rv2</code> 送进 EX/MEM， 即使 ALU 前递已经正确，紧邻生产者的 store 仍会写旧值。 BEQ 则必须用前递后的两个真实源值比较，不能拿未修正的 ID/EX 读值作判断。</p>
+<h3 id="比较寄存器号还不够必须比较有效性写意图与年龄">4.05.3 比较寄存器号还不够：必须比较有效性、写意图与年龄</h3>
+<p>前递条件至少包含以下信息：消费者有效且确实使用该源寄存器； 生产者有效且会写寄存器；目的寄存器不是 x0；生产者目的号等于消费者源号； 以及该生产者的结果已经就绪。 本例控制编码为 <code>00=ID/EX</code>、<code>10=EX/MEM</code>、<code>01=MEM/WB</code>。 编码只是 MUX 选择约定，没有固定的行业含义，图、代码和波形一致即可。</p>
+<h5 id="代码-带最近写者优先级的前递控制器">代码 ：带最近写者优先级的前递控制器</h5>
+<div class="sourceCode" id="cb6" data-language="Verilog"><pre class="sourceCode verilog"><code class="sourceCode verilog"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ot">`timescale 1ns/1ps</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">module</span> forward_unit <span class="op">(</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">input</span> <span class="dt">wire</span> ex_valid<span class="op">,</span> uses_rs1<span class="op">,</span> uses_rs2<span class="op">,</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">input</span> <span class="dt">wire</span> <span class="op">[</span><span class="dv">4</span><span class="op">:</span><span class="dv">0</span><span class="op">]</span> rs1<span class="op">,</span> rs2<span class="op">,</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">input</span> <span class="dt">wire</span> m_valid<span class="op">,</span> m_reg_write<span class="op">,</span> m_mem_read<span class="op">,</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">input</span> <span class="dt">wire</span> <span class="op">[</span><span class="dv">4</span><span class="op">:</span><span class="dv">0</span><span class="op">]</span> m_rd<span class="op">,</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">input</span> <span class="dt">wire</span> w_valid<span class="op">,</span> w_reg_write<span class="op">,</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">input</span> <span class="dt">wire</span> <span class="op">[</span><span class="dv">4</span><span class="op">:</span><span class="dv">0</span><span class="op">]</span> w_rd<span class="op">,</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="dt">output</span> <span class="dt">reg</span> <span class="op">[</span><span class="dv">1</span><span class="op">:</span><span class="dv">0</span><span class="op">]</span> forward_a<span class="op">,</span> forward_b</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 00: ID/EX value; 10: EX/MEM ALU result; 01: MEM/WB writeback value.</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="dt">wire</span> m_a <span class="op">=</span> ex_valid <span class="op">&amp;&amp;</span> uses_rs1 <span class="op">&amp;&amp;</span> rs1 <span class="op">!=</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>               m_valid <span class="op">&amp;&amp;</span> m_reg_write <span class="op">&amp;&amp;</span> m_rd <span class="op">==</span> rs1<span class="op">;</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">wire</span> m_b <span class="op">=</span> ex_valid <span class="op">&amp;&amp;</span> uses_rs2 <span class="op">&amp;&amp;</span> rs2 <span class="op">!=</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>               m_valid <span class="op">&amp;&amp;</span> m_reg_write <span class="op">&amp;&amp;</span> m_rd <span class="op">==</span> rs2<span class="op">;</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">wire</span> w_a <span class="op">=</span> ex_valid <span class="op">&amp;&amp;</span> uses_rs1 <span class="op">&amp;&amp;</span> rs1 <span class="op">!=</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>               w_valid <span class="op">&amp;&amp;</span> w_reg_write <span class="op">&amp;&amp;</span> w_rd <span class="op">==</span> rs1<span class="op">;</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="dt">wire</span> w_b <span class="op">=</span> ex_valid <span class="op">&amp;&amp;</span> uses_rs2 <span class="op">&amp;&amp;</span> rs2 <span class="op">!=</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>               w_valid <span class="op">&amp;&amp;</span> w_reg_write <span class="op">&amp;&amp;</span> w_rd <span class="op">==</span> rs2<span class="op">;</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">always</span> <span class="op">@</span>* <span class="kw">begin</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>        forward_a <span class="op">=</span> <span class="bn">2&#39;b00</span><span class="op">;</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>        forward_b <span class="op">=</span> <span class="bn">2&#39;b00</span><span class="op">;</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>        <span class="co">// The youngest matching writer owns the value. If it is a load,</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>        <span class="co">// it is not ready here; do NOT fall through to an older WB writer.</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>m_a<span class="op">)</span> <span class="kw">begin</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(!</span>m_mem_read<span class="op">)</span> forward_a <span class="op">=</span> <span class="bn">2&#39;b10</span><span class="op">;</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>        <span class="kw">end</span> <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span>w_a<span class="op">)</span> forward_a <span class="op">=</span> <span class="bn">2&#39;b01</span><span class="op">;</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>        <span class="kw">if</span> <span class="op">(</span>m_b<span class="op">)</span> <span class="kw">begin</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>            <span class="kw">if</span> <span class="op">(!</span>m_mem_read<span class="op">)</span> forward_b <span class="op">=</span> <span class="bn">2&#39;b10</span><span class="op">;</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>        <span class="kw">end</span> <span class="kw">else</span> <span class="kw">if</span> <span class="op">(</span>w_b<span class="op">)</span> forward_b <span class="op">=</span> <span class="bn">2&#39;b01</span><span class="op">;</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>    <span class="kw">end</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a><span class="kw">endmodule</span></span></code></pre></div>
+<h5 id="为什么-exmem-优先">为什么 EX/MEM 优先？</h5>
+<p>例如 <code>addi x1,x0,1</code>、<code>addi x1,x1,2</code>、<code>add x2,x1,x1</code>。 当第三条进入 EX，第一条在 WB，第二条在 MEM，两个阶段都声称可以给 x1 提供结果。 消费者需要程序顺序中最近一次对 x1 的写入，也就是第二条生成的 3，而不是第一条生成的 1。 代码用互斥的 <code>if / else if</code> 实现这种优先级，测试案例 <code>priority</code> 验证两路均选择 <code>10</code>，最终 x2=6。</p>
+<h5 id="为什么-exmem-中的-load-不能前递">为什么 EX/MEM 中的 load 不能前递？</h5>
+<p>本例在 EX/MEM 的 <code>result</code> 中保存 load 的有效地址，真正载入值尚未写入 MEM/WB。 如果仅看到 <code>reg_write=1</code> 就把 <code>exmem_result</code> 前递，消费者拿到的是地址，不是内存数据。 因此 EX/MEM 的 load 必须禁止作为这里的数据源。</p>
+<p>更隐蔽的问题是：较新的 EX/MEM load 与较老的 MEM/WB ALU 指令恰好写同一个寄存器。 不能因为新 load 尚未就绪，就退而使用老 ALU 的值。 本例先判断最近写者是否匹配，再判断它是否可以提供结果；若最近匹配者是 load，选择器不向老写者回退。 正确的数据就绪问题由前端暂停解决，测试平台还检查消费者不能提前进入这种 EX 状态。 <code>load_overwrites_alu</code> 专门覆盖了这种情况。</p>
+<h5 id="x0-不是一个需要等待的生产者">x0 不是一个需要等待的生产者。</h5>
+<p>任何向 x0 的寄存器写入都被丢弃；任何读 x0 的结果都必须为零。 因此目的为 x0 的指令不应触发寄存器数据相关。 但是 <code>lw x0,0(x1)</code> 仍然是一条访存指令，不能因为丢弃寄存器结果就取消访存本身； 在完整实现中，相应的异常及副作用语义仍需保留<span class="citation" data-cites="ch4-rv32i">(<a href="#ref-ch4-rv32i" role="doc-biblioref">RISC-V International 2026</a>)</span>。 本例不实现异常，但 <code>dmem_read</code> 不因目的为 x0 而被撤销。</p>
+<h3 id="先用连续的-alu-指令验证前递">4.05.4 先用连续的 ALU 指令验证前递</h3>
+<p>贯穿程序在 C4 中让地址 <code>0x04</code> 的 ADD 进入 EX，生产者 ADDI 在 MEM。 两路源寄存器号都是 x1，因此 <code>forward_a=10</code>、<code>forward_b=10</code>，执行 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>5</mn><mo>+</mo><mn>5</mn><mo>=</mo><mn>10</mn></mrow><annotation encoding="application/x-tex">5+5=10</annotation></semantics></math>。 C5 中，地址 <code>0x08</code> 的 SUB 需要 x2 与 x1。 x2 的最近写者在 EX/MEM，x1 的写者在 MEM/WB，所以 A 选择 <code>10</code>，B 选择 <code>01</code>，得到 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>10</mn><mo>−</mo><mn>5</mn><mo>=</mo><mn>5</mn></mrow><annotation encoding="application/x-tex">10-5=5</annotation></semantics></math>。 C6 的 store 再通过 B 前递取得 x3=5，C7 的上升沿将它写入地址 0。</p>
+<p>这三拍说明前递不是修改寄存器堆的第二个写口，而是临时修正使用端看到的数据。 生产者仍按原路径到 WB，消费者也不需要重新译码。 前递有硬件成本：更多比较器、选择器与较长的组合路径，可能影响时钟周期。 “减少暂停”与“提高主频”是不同指标，不能只看 CPI 就断言总运行时间一定缩短。</p>
+<h3 id="load-use为什么前递仍然救不了相邻的一拍">4.05.5 Load-Use：为什么前递仍然救不了相邻的一拍</h3>
+<p>观察贯穿程序中的 <code>lw x4,0(x0)</code> 与 <code>add x5,x4,x2</code>。 C7 时，load 在 EX 计算地址，消费者在 ID。若不暂停，C8 时消费者就要在 EX 使用 x4， 而 load 同期才在 MEM 读出数据。 本例没有设计“MEM 组合读结果直接绕回同周期 EX”的长路径，故不能满足这个使用时刻。 暂停一拍后，C9 的消费者在 EX，load 数据已经保存到 MEM/WB，就能按普通 WB 前递处理。</p>
+<p>检测放在 ID/EX 边界两侧：ID 中的消费者源号，与 EX 中 load 的目的号比较。 式中的 use 位避免把立即数字段误认为源号： <math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mtable><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"><mrow><mi mathvariant="normal">l</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">U</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">e</mi></mrow><mo>=</mo><mrow></mrow></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><msub><mi>D</mi><mrow><mi mathvariant="normal">v</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">d</mi></mrow></msub><mo>∧</mo><msub><mi>E</mi><mrow><mi mathvariant="normal">v</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">d</mi></mrow></msub><mo>∧</mo><msub><mi>E</mi><mrow><mi mathvariant="normal">m</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">m</mi><mi mathvariant="normal">R</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">d</mi></mrow></msub><mo>∧</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>E</mi><mrow><mi>r</mi><mi>d</mi></mrow></msub><mo>≠</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo></mtd></mtr><mtr><mtd columnalign="right" style="text-align: right; padding-right: 0"></mtd><mtd columnalign="left" style="text-align: left; padding-left: 0"><mi>∧</mi><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">[</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>D</mi><mrow><mi mathvariant="normal">u</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">e</mi><mn mathvariant="normal">1</mn></mrow></msub><mo>∧</mo><msub><mi>D</mi><mrow><mi>r</mi><mi>s</mi><mn>1</mn></mrow></msub><mo>=</mo><msub><mi>E</mi><mrow><mi>r</mi><mi>d</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo>∨</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>D</mi><mrow><mi mathvariant="normal">u</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">e</mi><mn mathvariant="normal">2</mn></mrow></msub><mo>∧</mo><msub><mi>D</mi><mrow><mi>r</mi><mi>s</mi><mn>2</mn></mrow></msub><mo>=</mo><msub><mi>E</mi><mrow><mi>r</mi><mi>d</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">]</mo><mi>.</mi></mtd></mtr></mtable><annotation encoding="application/x-tex">\begin{align*}
+\mathrm{loadUse}={}&amp;D_{\mathrm{valid}}\land E_{\mathrm{valid}}
+ \land E_{\mathrm{memRead}}\land(E_{rd}\ne0)\\
+ &amp;\land\big[(D_{\mathrm{use1}}\land D_{rs1}=E_{rd})
+ \lor(D_{\mathrm{use2}}\land D_{rs2}=E_{rd})\big].
+\end{align*}</annotation></semantics></math></p>
+<h5 id="代码-load-use-检测与前端控制">代码 ：Load-Use 检测与前端控制</h5>
+<div class="sourceCode" id="cb7" data-language="Verilog"><pre class="sourceCode verilog"><code class="sourceCode verilog"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ot">`timescale 1ns/1ps</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">module</span> hazard_unit <span class="op">(</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">input</span> <span class="dt">wire</span> d_valid<span class="op">,</span> d_uses_rs1<span class="op">,</span> d_uses_rs2<span class="op">,</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">input</span> <span class="dt">wire</span> <span class="op">[</span><span class="dv">4</span><span class="op">:</span><span class="dv">0</span><span class="op">]</span> d_rs1<span class="op">,</span> d_rs2<span class="op">,</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">input</span> <span class="dt">wire</span> e_valid<span class="op">,</span> e_mem_read<span class="op">,</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">input</span> <span class="dt">wire</span> <span class="op">[</span><span class="dv">4</span><span class="op">:</span><span class="dv">0</span><span class="op">]</span> e_rd<span class="op">,</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">input</span> <span class="dt">wire</span> redirect<span class="op">,</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">output</span> <span class="dt">wire</span> load_use<span class="op">,</span> pc_en<span class="op">,</span> ifid_en<span class="op">,</span> ifid_flush<span class="op">,</span> idex_flush</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="op">);</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">assign</span> load_use <span class="op">=</span> d_valid <span class="op">&amp;&amp;</span> e_valid <span class="op">&amp;&amp;</span> e_mem_read <span class="op">&amp;&amp;</span> e_rd <span class="op">!=</span> <span class="dv">0</span> <span class="op">&amp;&amp;</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>                      <span class="op">((</span>d_uses_rs1 <span class="op">&amp;&amp;</span> d_rs1 <span class="op">==</span> e_rd<span class="op">)</span> <span class="op">||</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>                       <span class="op">(</span>d_uses_rs2 <span class="op">&amp;&amp;</span> d_rs2 <span class="op">==</span> e_rd<span class="op">));</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">assign</span> pc_en      <span class="op">=</span> redirect <span class="op">||</span> <span class="op">!</span>load_use<span class="op">;</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">assign</span> ifid_en    <span class="op">=</span> <span class="op">!</span>load_use<span class="op">;</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">assign</span> ifid_flush <span class="op">=</span> redirect<span class="op">;</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">assign</span> idex_flush <span class="op">=</span> redirect <span class="op">||</span> load_use<span class="op">;</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="kw">endmodule</span></span></code></pre></div>
+<h5 id="暂停时分别操作三个边界">暂停时，分别操作三个边界。</h5>
+<p>第一，PC 保持，避免继续消耗尚未进入流水线的指令；第二，IF/ID 保持，让消费者继续留在 ID； 第三，ID/EX 在边沿置为无效，给 EX 注入一个空泡。 EX/MEM 与 MEM/WB 正常推进，让造成相关的 load 继续完成。 若连 ID/EX 一起保持，load 会一直待在 EX，相关条件也一直成立，流水线便可能无法前进。 若只保持 PC 而不保持 IF/ID，消费者又可能被覆盖或重复注入。</p>
+<figure data-latex-placement="htbp">
+<img src="../../figures/05-hazard/wave-load-use.svg" />
+<div id="fig:ch4-load-wave">
+
+</div>
+<figcaption>图 4.6 实际仿真中的 Load-Use 控制波形。总线只显示有效 PC；有效位为零时标为空泡。</figcaption>
+</figure>
+<div id="tab:ch4-load-cycles">
+
+</div>
+<div class="table-scroll"><table>
+<caption>表 4.6 Load-Use 的三个关键周期</caption>
+<thead>
+<tr>
+<th style="text-align: left;">周期</th>
+<th style="text-align: left;">边沿前所在位置</th>
+<th style="text-align: left;">本周期控制与边沿后的变化</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">C7</td>
+<td style="text-align: left;">LW 在 EX，ADD 在 ID</td>
+<td style="text-align: left;">load_use=1；pc_en=0、ifid_en=0、idex_flush=1；load 继续到 MEM。</td>
+</tr>
+<tr>
+<td style="text-align: left;">C8</td>
+<td style="text-align: left;">LW 在 MEM，EX 为空泡，ADD 仍在 ID</td>
+<td style="text-align: left;">load_use=0；前端恢复推进，边沿后 ADD 进入 EX，载入值进入 MEM/WB。</td>
+</tr>
+<tr>
+<td style="text-align: left;">C9</td>
+<td style="text-align: left;">LW 在 WB，ADD 在 EX</td>
+<td style="text-align: left;">forward_a=01；ADD 使用 x4=5 与 x2=10，得到 15。</td>
+</tr>
+</tbody>
+</table></div>
+<h5 id="一拍暂停是本例条件下的结论">一拍暂停是本例条件下的结论。</h5>
+<p>本例把 store 数据也在 EX 取齐并保存在 EX/MEM，所以相邻 <code>lw x1,...; sw x1,...</code> 也停一拍。 如果另加 WB 到 MEM 的 store 写数据旁路，那么只依赖 store 数据、而不依赖其地址基址的情况可能不必停。 这种优化需要重新区分源操作数的使用级，不能简单把 SW 的 use2 改成 0。 同理，若存储器增加等待周期，就需要持续保持相关状态，当前的一拍控制不能直接复用。</p>
+<h3 id="暂停与冲刷解决的是不同问题">4.05.6 暂停与冲刷解决的是不同问题</h3>
+<p>暂停表示“这条指令仍然要执行，只是现在不能前进”；冲刷表示“这条指令不应再执行”。 在本例的 taken BEQ 中，决定分支的指令位于 EX，IF 与 ID 已经有两条按顺序 PC 取来的年轻指令。 如果分支成立，它们属于错误路径，必须在下一个边沿失效。 因此重定向同时作用于 PC、IF/ID 和 ID/EX；更老的 MEM、WB 指令继续完成。</p>
+<div id="tab:ch4-controls">
+
+</div>
+<div class="table-scroll"><table>
+<caption>表 4.7 控制优先级与各流水边界动作</caption>
+<thead>
+<tr>
+<th style="text-align: left;">条件（自上而下）</th>
+<th style="text-align: left;">PC</th>
+<th style="text-align: left;">IF/ID</th>
+<th style="text-align: left;">ID/EX</th>
+<th style="text-align: left;">EX/MEM、MEM/WB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">同步复位</td>
+<td style="text-align: left;">置为 0</td>
+<td style="text-align: left;">valid=0</td>
+<td style="text-align: left;">valid=0</td>
+<td style="text-align: left;">valid=0</td>
+</tr>
+<tr>
+<td style="text-align: left;">redirect=1</td>
+<td style="text-align: left;">分支目标</td>
+<td style="text-align: left;">valid=0</td>
+<td style="text-align: left;">valid=0</td>
+<td style="text-align: left;">旧指令推进</td>
+</tr>
+<tr>
+<td style="text-align: left;">load_use=1</td>
+<td style="text-align: left;">保持</td>
+<td style="text-align: left;">保持</td>
+<td style="text-align: left;">valid=0</td>
+<td style="text-align: left;">旧指令推进</td>
+</tr>
+<tr>
+<td style="text-align: left;">正常周期</td>
+<td style="text-align: left;">PC+4</td>
+<td style="text-align: left;">接收 IF</td>
+<td style="text-align: left;">接收 ID</td>
+<td style="text-align: left;">旧指令推进</td>
+</tr>
+</tbody>
+</table></div>
+<p>代码中 IF/ID 的 flush 判断位于 enable 之前，所以即使使能关闭，冲刷也能取消其中的旧指令。 <code>pc_en = redirect || !load_use</code> 则保证重定向不会被普通暂停屏蔽。 在当前单发射实现中，同一条 EX 指令不可能既是 load 又是 BEQ，二者不会同时触发； 仍然明确优先级，有助于以后加入其他暂停来源时保持控制语义清晰。</p>
+<h5 id="为什么只清-ifid-不够">为什么只清 IF/ID 不够？</h5>
+<p>在分支决定的边沿，原 ID 中的错误路径指令正准备进入 ID/EX。 只清 IF/ID，会让该指令同时进入 EX，后续仍可能写寄存器或内存。 本例同时使 IF/ID 和 ID/EX 失效，取消的正好是 EX 分支之后的两条年轻指令。 这里没有分支延迟槽；RISC-V 软件也不能把被取消的指令当成必执行指令。</p>
+<h3 id="从真实波形检查一次分支冲刷">4.05.7 从真实波形检查一次分支冲刷</h3>
+<p>C11 时，地址 <code>0x1c</code> 的 BEQ 在 EX。它读取的 x5 来自 MEM/WB，x6 来自 EX/MEM， 所以两路前递选择分别为 <code>01</code> 和 <code>10</code>。 比较值均为 15，<code>redirect=1</code>，目标为 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mn mathvariant="monospace">𝟶</mn><mi mathvariant="monospace">𝚡</mi><mn mathvariant="monospace">𝟷</mn><mi mathvariant="monospace">𝚌</mi></mrow><mo>+</mo><mn>12</mn><mo>=</mo><mrow><mn mathvariant="monospace">𝟶</mn><mi mathvariant="monospace">𝚡</mi><mn mathvariant="monospace">𝟸𝟾</mn></mrow></mrow><annotation encoding="application/x-tex">\mathtt{0x1c}+12=\mathtt{0x28}</annotation></semantics></math>。 同一周期，ID 中是地址 <code>0x20</code> 的 ADDI，IF 中是地址 <code>0x24</code> 的 SW。 它们在边沿被取消。</p>
+<figure data-latex-placement="htbp">
+<img src="../../figures/05-hazard/wave-branch.svg" />
+<div id="fig:ch4-branch-wave">
+
+</div>
+<figcaption>图 4.7 实际仿真中的分支冲刷。C12 的 IF 已在目标地址，ID 与 EX 同时为空泡。</figcaption>
+</figure>
+<p>C12 取到正确目标，C13 目标进入 ID，C14 进入 EX。 BEQ 自己仍可沿 MEM、WB 传播，但它的寄存器写与存储器写控制均为零。 被冲刷的 ADDI 不会写 x7，被冲刷的 SW 不会覆盖地址 4。 最终检查 x7=0 和 memory[4]=32，既验证目标地址，又验证错误路径没有造成副作用。</p>
+<figure data-latex-placement="htbp">
+<img src="../../figures/05-hazard/cycle-table.svg" />
+<div id="fig:ch4-cycle-table">
+
+</div>
+<figcaption>图 4.8 贯穿程序的实际流水时序。横轴为周期，红色标出被取消的路径。</figcaption>
+</figure>
+<p>这里 taken branch 的代价是失去两条年轻指令占据的前端机会。 若把分支判断提前到 ID，冲刷范围可以变化，但比较器也需要更早拿到源值，前递和暂停都要重新设计。 若使用分支预测，则“成立”与“错误预测”更不再是一回事。 本例只有固定的顺序取指策略，不把它称为实现了完整分支预测器。</p>
+<h3 id="怎样把看起来对变成可复现的验证">4.05.8 怎样把“看起来对”变成可复现的验证</h3>
+<p>波形适合解释时间关系，自动判定适合防止漏看。 本实验同时检查架构结果和周期约束。 Python 参考模型独立解码实际机器码，顺序执行支持的指令，产生期望的寄存器写入序列和存储器写入序列。 测试平台只在真实写使能有效的边沿记录 RTL 事件，再按事件类别逐项比较 PC、目的对象和数据。 store 在 MEM 发生、寄存器写在 WB 发生，所以这两类事件分别比较顺序，避免把不同观测级的交错误当成程序提交顺序。</p>
+<p>测试平台还检查更具体的时序性质：上一拍发生 load-use 后，PC 和 IF/ID 必须保持，ID/EX 必须为空， 原 EX load 必须进入 MEM；上一拍重定向后，PC 必须为目标，两组年轻流水寄存器必须失效； 消费者不能在较新的匹配 load 尚处 MEM 时提前使用旧值；x0 不能被修改。 这些检查能在结果偶然正确时仍发现控制错误。</p>
+<div id="tab:ch4-tests">
+
+</div>
+<div class="table-scroll"><table>
+<caption>表 4.8 2026-10-23 使用 Icarus Verilog 执行的验证结果</caption>
+<thead>
+<tr>
+<th style="text-align: left;">案例</th>
+<th style="text-align: left;">重点</th>
+<th style="text-align: right;">暂停</th>
+<th style="text-align: right;">重定向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">walkthrough</td>
+<td style="text-align: left;">两路前递、store、load-use、错误路径取消</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: left;">priority</td>
+<td style="text-align: left;">两个未完成写者同时匹配，选择最近写者</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">wb_id</td>
+<td style="text-align: left;">WB 与 ID 同拍访问同一寄存器</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">x0_false_dependency</td>
+<td style="text-align: left;">x0、立即数字段造成的假相关</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">load_store</td>
+<td style="text-align: left;">load 到 store 数据及地址相关</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">load_overwrites_alu</td>
+<td style="text-align: left;">新 load 覆盖旧 ALU 写者</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;">load_branch</td>
+<td style="text-align: left;">load 到分支，成立与不成立两种结果</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td style="text-align: left;">random_160</td>
+<td style="text-align: left;">固定种子 20261023，160 条混合指令</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table></div>
+<p>八组测试全部通过，覆盖 197 条输入指令，其中有错误路径指令不实际执行。 随机组包含 ADD、SUB、ADDI、LW、SW，限制地址对齐且在数组范围内，没有随机分支或异常。 这是一组针对本节机制的教学验证，不等同于完整 ISA 测试、形式化证明或 FPGA 时序签核。 复现时应以本机新生成的 <code>summary.json</code> 和日志为准。</p>
+<h5 id="为什么要说明波形的采样时刻">为什么要说明波形的采样时刻？</h5>
+<p>测试平台在上升沿的活动区读取边沿前的值，随后 DUT 的非阻塞赋值更新各流水寄存器。 因此本文的 C7 表示“C7 结束的上升沿之前的状态”，暂停产生的空泡在下一列 C8 可见。 若在波形工具中把游标放到该边沿之后，就会看到更新后的 C8 状态。 二者没有矛盾，只是采样定义不同。</p>
+<p><code>generate_assets.py</code> 解析原始 <code>wave.vcd</code>， 在每个有效上升沿之前采样，并逐拍核对八个控制信号与 <code>trace.csv</code>。 两张控制波形图由这些已核对的数据生成，未用手填的理想时序替代实际仿真。 图中 PC 总线只在对应有效位为 1 时显示，否则标作空泡。 原始 VCD 保留了所有信号，读者仍可检查被图形隐藏的无效载荷。</p>
+<h5 id="建议的观察步骤">建议的观察步骤。</h5>
+<p>先打开 <code>walkthrough/wave.vcd</code>，加入 clk、rst、各级 valid 与 PC； 再加入 load_use、forward_a/b、redirect、pc_en、ifid_en 和两路 flush； 最后加入 ex_a、ex_rs2、wb_we、wb_data、dmem_write。 从 C4、C7、C11 三处开始检查，分别回答“值从哪来”“哪一级保持”“哪些指令被取消”。 只看最终寄存器值，无法解释这些周期行为；只看几根控制线，也无法证明最终程序效果正确。</p>
+<h3 id="动手修改让错误暴露在正确的测试里">4.05.9 动手修改：让错误暴露在正确的测试里</h3>
+<p>可以复制实验目录再做以下练习；每次只改一个机制，先预测哪个案例失败，再运行验证。 修改实验副本时保留原始通过版本，方便对照。</p>
+<ol>
+<li><p>交换前递优先级。预测 <code>priority</code> 中 x2 的错误结果，并在 EX 两个匹配写者同时存在时观察选择信号。</p></li>
+<li><p>移除 <code>d_uses_rs2</code> 条件。观察 <code>x0_false_dependency</code> 中立即数 5 是否触发多余暂停；此类错误可能不改变计算结果，但会改变周期计数。</p></li>
+<li><p>把 load-use 时的 ID/EX 清空改为保持。解释为什么 load 无法离开相关位置；仿真应由时序约束或事件数量检查暴露问题。</p></li>
+<li><p>把 store 数据改接未经前递的 ID/EX 读值。先检查贯穿案例地址 0 的写数据，再解释为何 ALU 的有效地址可能仍然正确。</p></li>
+<li><p>分支成立时只清 IF/ID。观察地址 <code>0x20</code> 的错误路径指令是否继续进入 EX，是否最终写入 x7。</p></li>
+</ol>
+<h5 id="思考题参考线索">思考题参考线索。</h5>
+<p>最近的写者代表程序顺序中消费者应读到的版本；立即数字段不是源寄存器； 等待的消费者应停住，而生产者必须前进；store 地址与 store 数据是两条独立路径； 在分支决定的边沿，ID 正准备把年轻指令传给 EX。 用这些因果关系解释失败，比仅把代码改回去更能建立硬件思维。</p>
+<blockquote>
+<p><strong>从理论到 RTL 的完整检查链</strong></p>
+<p>先标出指令的生产者与消费者，再标出结果就绪级与使用级；把这些条件写成寄存器号比较、MUX 选择、使能与有效位； 最后同时检查逐拍波形和架构结果。前递修正数据来源，暂停推迟使用时刻，冲刷取消不该发生的操作。</p>
+</blockquote>
+<h2 id="references">参考文献</h2>
+<div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-ch4-iverilog" class="csl-entry" role="listitem">
+Icarus Verilog contributors. 2026. <em>Icarus Verilog Usage Documentation</em>. <a href="https://steveicarus.github.io/iverilog/usage/index.html">https://steveicarus.github.io/iverilog/usage/index.html</a>.
+</div>
+<div id="ref-ch4-rv32i" class="csl-entry" role="listitem">
+RISC-V International. 2026. <em>RV32I Base Integer Instruction Set, Version 2.1</em>. <a href="https://docs.riscv.org/reference/isa/v20260120/unpriv/rv32.html">https://docs.riscv.org/reference/isa/v20260120/unpriv/rv32.html</a>.
+</div>
+</div>
+
+</article>
+<section id="explorer"><h2>逐拍观察：拖动 C1 → C17</h2><div class="controls"><button id="prev">上一拍</button><input id="cycle" type="range" min="1" max="17" value="7" aria-label="仿真周期"><button id="next">下一拍</button><strong id="cycleLabel"></strong></div><div id="stages" class="stages"></div><div id="status" class="status" aria-live="polite"></div><pre id="signals"></pre><details><summary>贯穿示例：地址、机器码和汇编</summary><pre>0000  00500093  addi x1, x0, 5
+0004  00108133  add x2, x1, x1
+0008  401101b3  sub x3, x2, x1
+000c  00302023  sw x3, 0(x0)
+0010  00002203  lw x4, 0(x0)
+0014  002202b3  add x5, x4, x2
+0018  00f00313  addi x6, x0, 15
+001c  00628663  beq x5, x6, +12
+0020  06300393  addi x7, x0, 99
+0024  00702223  sw x7, 4(x0)
+0028  00628433  add x8, x5, x6
+002c  00802423  sw x8, 8(x0)
+</pre></details><p class="note">每一列表示该周期结束的上升沿之前的状态。无效级显示“空泡”，其中旧数据不参与架构更新。</p></section>
+<footer>配套 <a href="https://github.com/SysarchLab-CQUPT/SysArch-Journey/issues/6">Issue #6</a> · 正文与 PDF 共用 LaTeX 源文件；代码摘录来自实际仿真的 RTL。点击结构图可放大，代码右上角可复制。</footer>
+</main>
+</div>
+<dialog id="image-dialog" aria-label="放大查看结构图"><div class="dialog-head"><span id="image-caption">结构图</span><button id="close-image">关闭</button></div><div class="image-frame"><img id="large-image" alt=""></div></dialog>
+<script>
+const rows=[{"cycle": "1", "pc_f": "00000000", "pc_d": "ffffffff", "pc_e": "ffffffff", "pc_m": "ffffffff", "pc_w": "ffffffff", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "xxxxxxxx", "ex_rs2": "xxxxxxxx", "wb_we": "0", "wb_rd": "x", "wb_data": "xxxxxxxx", "mem_we": "0", "mem_addr": "xxxxxxxx", "mem_data": "xxxxxxxx"}, {"cycle": "2", "pc_f": "00000004", "pc_d": "00000000", "pc_e": "ffffffff", "pc_m": "ffffffff", "pc_w": "ffffffff", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "xxxxxxxx", "ex_rs2": "xxxxxxxx", "wb_we": "0", "wb_rd": "x", "wb_data": "xxxxxxxx", "mem_we": "0", "mem_addr": "xxxxxxxx", "mem_data": "xxxxxxxx"}, {"cycle": "3", "pc_f": "00000008", "pc_d": "00000004", "pc_e": "00000000", "pc_m": "ffffffff", "pc_w": "ffffffff", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "x", "wb_data": "xxxxxxxx", "mem_we": "0", "mem_addr": "xxxxxxxx", "mem_data": "xxxxxxxx"}, {"cycle": "4", "pc_f": "0000000c", "pc_d": "00000008", "pc_e": "00000004", "pc_m": "00000000", "pc_w": "ffffffff", "load_use": "0", "forward_a": "2", "forward_b": "2", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000005", "ex_rs2": "00000005", "wb_we": "0", "wb_rd": "x", "wb_data": "xxxxxxxx", "mem_we": "0", "mem_addr": "00000005", "mem_data": "00000000"}, {"cycle": "5", "pc_f": "00000010", "pc_d": "0000000c", "pc_e": "00000008", "pc_m": "00000004", "pc_w": "00000000", "load_use": "0", "forward_a": "2", "forward_b": "1", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "0000000a", "ex_rs2": "00000005", "wb_we": "1", "wb_rd": "1", "wb_data": "00000005", "mem_we": "0", "mem_addr": "0000000a", "mem_data": "00000005"}, {"cycle": "6", "pc_f": "00000014", "pc_d": "00000010", "pc_e": "0000000c", "pc_m": "00000008", "pc_w": "00000004", "load_use": "0", "forward_a": "0", "forward_b": "2", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000005", "wb_we": "1", "wb_rd": "2", "wb_data": "0000000a", "mem_we": "0", "mem_addr": "00000005", "mem_data": "00000005"}, {"cycle": "7", "pc_f": "00000018", "pc_d": "00000014", "pc_e": "00000010", "pc_m": "0000000c", "pc_w": "00000008", "load_use": "1", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "0", "ifid_en": "0", "ifid_flush": "0", "idex_flush": "1", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "1", "wb_rd": "3", "wb_data": "00000005", "mem_we": "1", "mem_addr": "00000000", "mem_data": "00000005"}, {"cycle": "8", "pc_f": "00000018", "pc_d": "00000014", "pc_e": "ffffffff", "pc_m": "00000010", "pc_w": "0000000c", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "9", "pc_f": "0000001c", "pc_d": "00000018", "pc_e": "00000014", "pc_m": "ffffffff", "pc_w": "00000010", "load_use": "0", "forward_a": "1", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000005", "ex_rs2": "0000000a", "wb_we": "1", "wb_rd": "4", "wb_data": "00000005", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "10", "pc_f": "00000020", "pc_d": "0000001c", "pc_e": "00000018", "pc_m": "00000014", "pc_w": "ffffffff", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "4", "wb_data": "00000005", "mem_we": "0", "mem_addr": "0000000f", "mem_data": "0000000a"}, {"cycle": "11", "pc_f": "00000024", "pc_d": "00000020", "pc_e": "0000001c", "pc_m": "00000018", "pc_w": "00000014", "load_use": "0", "forward_a": "1", "forward_b": "2", "redirect": "1", "pc_en": "1", "ifid_en": "1", "ifid_flush": "1", "idex_flush": "1", "ex_a": "0000000f", "ex_rs2": "0000000f", "wb_we": "1", "wb_rd": "5", "wb_data": "0000000f", "mem_we": "0", "mem_addr": "0000000f", "mem_data": "00000000"}, {"cycle": "12", "pc_f": "00000028", "pc_d": "ffffffff", "pc_e": "ffffffff", "pc_m": "0000001c", "pc_w": "00000018", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "1", "wb_rd": "6", "wb_data": "0000000f", "mem_we": "0", "mem_addr": "0000001e", "mem_data": "0000000f"}, {"cycle": "13", "pc_f": "0000002c", "pc_d": "00000028", "pc_e": "ffffffff", "pc_m": "ffffffff", "pc_w": "0000001c", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000005", "wb_we": "0", "wb_rd": "12", "wb_data": "0000001e", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "14", "pc_f": "00000030", "pc_d": "0000002c", "pc_e": "00000028", "pc_m": "ffffffff", "pc_w": "ffffffff", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "0000000f", "ex_rs2": "0000000f", "wb_we": "0", "wb_rd": "12", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000063", "mem_data": "00000005"}, {"cycle": "15", "pc_f": "00000034", "pc_d": "00000030", "pc_e": "0000002c", "pc_m": "00000028", "pc_w": "ffffffff", "load_use": "0", "forward_a": "0", "forward_b": "2", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "0000001e", "wb_we": "0", "wb_rd": "7", "wb_data": "00000063", "mem_we": "0", "mem_addr": "0000001e", "mem_data": "0000000f"}, {"cycle": "16", "pc_f": "00000038", "pc_d": "00000034", "pc_e": "00000030", "pc_m": "0000002c", "pc_w": "00000028", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "1", "wb_rd": "8", "wb_data": "0000001e", "mem_we": "1", "mem_addr": "00000008", "mem_data": "0000001e"}, {"cycle": "17", "pc_f": "0000003c", "pc_d": "00000038", "pc_e": "00000034", "pc_m": "00000030", "pc_w": "0000002c", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "8", "wb_data": "00000008", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "18", "pc_f": "00000040", "pc_d": "0000003c", "pc_e": "00000038", "pc_m": "00000034", "pc_w": "00000030", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "19", "pc_f": "00000044", "pc_d": "00000040", "pc_e": "0000003c", "pc_m": "00000038", "pc_w": "00000034", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "20", "pc_f": "00000048", "pc_d": "00000044", "pc_e": "00000040", "pc_m": "0000003c", "pc_w": "00000038", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "21", "pc_f": "0000004c", "pc_d": "00000048", "pc_e": "00000044", "pc_m": "00000040", "pc_w": "0000003c", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "22", "pc_f": "00000050", "pc_d": "0000004c", "pc_e": "00000048", "pc_m": "00000044", "pc_w": "00000040", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "23", "pc_f": "00000054", "pc_d": "00000050", "pc_e": "0000004c", "pc_m": "00000048", "pc_w": "00000044", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "24", "pc_f": "00000058", "pc_d": "00000054", "pc_e": "00000050", "pc_m": "0000004c", "pc_w": "00000048", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "25", "pc_f": "0000005c", "pc_d": "00000058", "pc_e": "00000054", "pc_m": "00000050", "pc_w": "0000004c", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "26", "pc_f": "00000060", "pc_d": "0000005c", "pc_e": "00000058", "pc_m": "00000054", "pc_w": "00000050", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "27", "pc_f": "00000064", "pc_d": "00000060", "pc_e": "0000005c", "pc_m": "00000058", "pc_w": "00000054", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "28", "pc_f": "00000068", "pc_d": "00000064", "pc_e": "00000060", "pc_m": "0000005c", "pc_w": "00000058", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "29", "pc_f": "0000006c", "pc_d": "00000068", "pc_e": "00000064", "pc_m": "00000060", "pc_w": "0000005c", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "30", "pc_f": "00000070", "pc_d": "0000006c", "pc_e": "00000068", "pc_m": "00000064", "pc_w": "00000060", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "31", "pc_f": "00000074", "pc_d": "00000070", "pc_e": "0000006c", "pc_m": "00000068", "pc_w": "00000064", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "32", "pc_f": "00000078", "pc_d": "00000074", "pc_e": "00000070", "pc_m": "0000006c", "pc_w": "00000068", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "33", "pc_f": "0000007c", "pc_d": "00000078", "pc_e": "00000074", "pc_m": "00000070", "pc_w": "0000006c", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "34", "pc_f": "00000080", "pc_d": "0000007c", "pc_e": "00000078", "pc_m": "00000074", "pc_w": "00000070", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "35", "pc_f": "00000084", "pc_d": "00000080", "pc_e": "0000007c", "pc_m": "00000078", "pc_w": "00000074", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "36", "pc_f": "00000088", "pc_d": "00000084", "pc_e": "00000080", "pc_m": "0000007c", "pc_w": "00000078", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}];const program={"0": "addi x1, x0, 5", "4": "add x2, x1, x1", "8": "sub x3, x2, x1", "12": "sw x3, 0(x0)", "16": "lw x4, 0(x0)", "20": "add x5, x4, x2", "24": "addi x6, x0, 15", "28": "beq x5, x6, +12", "32": "addi x7, x0, 99", "36": "sw x7, 4(x0)", "40": "add x8, x5, x6", "44": "sw x8, 8(x0)"};const slider=document.getElementById('cycle');function show(){const c=Number(slider.value),r=rows[c-1];document.getElementById('cycleLabel').textContent='C'+c;document.getElementById('stages').innerHTML=['IF','ID','EX','MEM','WB'].map((s,i)=>{const pc=r[['pc_f','pc_d','pc_e','pc_m','pc_w'][i]],v=pc!=='ffffffff';return `<div class="stage ${v?'':'bubble'}"><b>${s}</b><span>${v?'0x'+pc.slice(-2)+'<br>'+ (program[parseInt(pc,16)]||'NOP (填充)'):'空泡 / valid = 0'}</span></div>`}).join('');let msg='各级正常推进。先看每级 PC，再看前递选择及写使能。';if(c===4)msg='ADD 的两个源操作数均来自 EX/MEM：forward_a = forward_b = 10，5 + 5 = 10。';if(c===5)msg='SUB 的 A 端取较新的 EX/MEM，B 端取 MEM/WB：10 − 5 = 5。';if(c===6)msg='SW 的数据由 EX/MEM 前递到 ex_rs2；ALU 的 B 端仍选择立即数 0。';if(c===7)msg='LW 在 EX、ADD 在 ID：load_use = 1。此边沿保持 PC 和 IF/ID，向 ID/EX 注入空泡，LW 继续到 MEM。';if(c===8)msg='EX 出现空泡；ADD 仍在 ID；LW 已到 MEM。本周期解除暂停，边沿后 ADD 进入 EX。';if(c===9)msg='ADD 进入 EX，从 MEM/WB 前递载入值 5，与 x2 的 10 相加得到 15。';if(c===11)msg='BEQ 比较两个前递值 15：redirect = 1。目标是 0x1c + 12 = 0x28；IF/ID 与 ID/EX 在边沿失效。';if(c===12)msg='目标指令在 IF；ID、EX 为空泡。错误路径的 ADDI 和 SW 不会产生写回或存储副作用。';document.getElementById('status').textContent=msg;document.getElementById('signals').textContent=['load_use','forward_a','forward_b','redirect','pc_en','ifid_en','ifid_flush','idex_flush'].map(k=>k.padEnd(13)+' = '+(k.startsWith('forward')?Number(r[k]).toString(2).padStart(2,'0'):r[k])).join('\n');}slider.oninput=show;document.getElementById('prev').onclick=()=>{slider.value=Math.max(1,Number(slider.value)-1);show()};document.getElementById('next').onclick=()=>{slider.value=Math.min(17,Number(slider.value)+1);show()};show();
+const headings=[...document.querySelectorAll('#textbook h2,#textbook h3')];
+const tocHTML=headings.map((h,i)=>{if(!h.id)h.id='reading-'+i;return `<a class="${h.tagName==='H3'?'sub':''}" href="#${h.id}">${h.textContent}</a>`}).join('')+'<a href="#explorer">逐拍交互演示</a>';
+document.getElementById('desktop-toc').innerHTML=tocHTML;document.getElementById('mobile-toc').innerHTML=tocHTML;
+document.querySelectorAll('#mobile-toc a').forEach(a=>a.addEventListener('click',()=>document.querySelector('.mobile-toc').open=false));
+const readingObserver=new IntersectionObserver(entries=>{for(const e of entries){if(e.isIntersecting){document.querySelectorAll('.toc a').forEach(a=>a.classList.toggle('active',decodeURIComponent(a.hash)==='#'+e.target.id));}}},{rootMargin:'-80px 0px -65% 0px'});headings.forEach(h=>readingObserver.observe(h));
+document.querySelectorAll('pre:not(#signals)').forEach(pre=>{const text=pre.querySelector('code')?.innerText||pre.textContent;const button=document.createElement('button');button.className='copy';button.textContent='复制代码';button.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(text);button.textContent='已复制';}catch{button.textContent='请选中代码复制';}setTimeout(()=>button.textContent='复制代码',1800)});pre.append(button)});
+const imageDialog=document.getElementById('image-dialog');document.querySelectorAll('#textbook figure img').forEach(img=>{if(!img.alt)img.alt=img.closest('figure').querySelector('figcaption')?.textContent||'结构图';img.tabIndex=0;img.setAttribute('role','button');img.setAttribute('aria-label','放大：'+img.alt);const open=()=>{document.getElementById('large-image').src=img.src;document.getElementById('large-image').alt=img.alt;document.getElementById('image-caption').textContent=img.closest('figure').querySelector('figcaption')?.textContent||'结构图';imageDialog.showModal()};img.addEventListener('click',open);img.addEventListener('keydown',e=>{if(e.key==='Enter')open()})});document.getElementById('close-image').onclick=()=>imageDialog.close();imageDialog.addEventListener('click',e=>{if(e.target===imageDialog)imageDialog.close()});
+document.getElementById('font-size').onclick=()=>{const large=document.documentElement.dataset.large!=='1';document.documentElement.dataset.large=large?'1':'0';document.documentElement.style.setProperty('--body',large?'20px':'18px');document.getElementById('font-size').textContent=large?'A−':'A+'};
+const updateProgress=()=>{const distance=document.documentElement.scrollHeight-innerHeight;document.getElementById('reading-progress').style.width=(distance>0?scrollY/distance*100:0)+'%'};addEventListener('scroll',updateProgress,{passive:true});updateProgress();
+</script>
+</body>
+</html>

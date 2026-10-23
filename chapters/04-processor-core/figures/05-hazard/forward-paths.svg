@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 490" role="img"><title>forward-paths</title>
+<rect width="100%" height="100%" fill="white"/>
+<text x="25" y="35" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="23" fill="#16324f" text-anchor="start">前递的选择点：先得到真实 rs2，再选择 ALU 的第二操作数</text>
+<rect x="25" y="85" width="265" height="72" rx="8" fill="#f3f6fb" stroke="#d7e1ed"/>
+<text x="40" y="113" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="20" fill="#2563eb" text-anchor="start">ID/EX</text>
+<text x="40" y="140" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#16324f" text-anchor="start">寄存器堆读值</text>
+<rect x="25" y="190" width="265" height="72" rx="8" fill="#f3f6fb" stroke="#d7e1ed"/>
+<text x="40" y="218" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="20" fill="#2563eb" text-anchor="start">EX/MEM</text>
+<text x="40" y="245" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#16324f" text-anchor="start">ALU 结果；load 尚未就绪</text>
+<rect x="25" y="295" width="265" height="72" rx="8" fill="#f3f6fb" stroke="#d7e1ed"/>
+<text x="40" y="323" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="20" fill="#2563eb" text-anchor="start">MEM/WB</text>
+<text x="40" y="350" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#16324f" text-anchor="start">最终 wb_data</text>
+<rect x="405" y="120" width="165" height="80" rx="8" fill="#e8f4f0" stroke="#d7e1ed"/>
+<text x="487" y="152" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" fill="#16324f" text-anchor="middle">前递 MUX A</text>
+<text x="487" y="180" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">forward_a</text>
+<rect x="405" y="280" width="165" height="80" rx="8" fill="#e8f4f0" stroke="#d7e1ed"/>
+<text x="487" y="312" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" fill="#16324f" text-anchor="middle">前递 MUX B</text>
+<text x="487" y="340" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">forward_b</text>
+<polyline points="290,121 320,121 320,140.0 405,140.0" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polygon points="405,140.0 396.0,136.0 396.0,144.0" fill="#2563eb"/>
+<polyline points="320,121 320,300.0 405,300.0" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polygon points="405,300.0 396.0,296.0 396.0,304.0" fill="#2563eb"/>
+<polyline points="290,226 345,226 345,155.0 405,155.0" fill="none" stroke="#008575" stroke-width="2"/>
+<polygon points="405,155.0 396.0,151.0 396.0,159.0" fill="#008575"/>
+<polyline points="345,226 345,315.0 405,315.0" fill="none" stroke="#008575" stroke-width="2"/>
+<polygon points="405,315.0 396.0,311.0 396.0,319.0" fill="#008575"/>
+<polyline points="290,331 370,331 370,170.0 405,170.0" fill="none" stroke="#008575" stroke-width="2"/>
+<polygon points="405,170.0 396.0,166.0 396.0,174.0" fill="#008575"/>
+<polyline points="370,331 370,330.0 405,330.0" fill="none" stroke="#008575" stroke-width="2"/>
+<polygon points="405,330.0 396.0,326.0 396.0,334.0" fill="#008575"/>
+<rect x="680" y="125" width="145" height="68" rx="8" fill="#f3f6fb" stroke="#d7e1ed"/>
+<text x="752" y="165" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" fill="#16324f" text-anchor="middle">ALU</text>
+<polyline points="570,152 680,152" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polygon points="680,152 671.0,148.0 671.0,156.0" fill="#2563eb"/>
+<text x="575" y="140" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#2563eb" text-anchor="start">ex_a</text>
+<rect x="680" y="280" width="145" height="75" rx="8" fill="#f3f6fb" stroke="#d7e1ed"/>
+<text x="752" y="311" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="middle">立即数 MUX</text>
+<text x="752" y="337" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">alu_imm</text>
+<polyline points="570,306 680,306" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polygon points="680,306 671.0,302.0 671.0,310.0" fill="#2563eb"/>
+<text x="600" y="294" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#008575" text-anchor="start">ex_rs2</text>
+<polyline points="752,280 752,193" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polygon points="752,193 748.0,202.0 756.0,202.0" fill="#2563eb"/>
+<text x="766" y="240" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#2563eb" text-anchor="start">ex_b</text>
+<polyline points="660,403 752,403 752,355" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polygon points="752,355 748.0,364.0 756.0,364.0" fill="#2563eb"/>
+<text x="605" y="424" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#2563eb" text-anchor="start">idex_imm</text>
+<rect x="910" y="260" width="165" height="70" rx="8" fill="#f3f6fb" stroke="#d7e1ed"/>
+<text x="992" y="289" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="middle">store_data</text>
+<text x="992" y="312" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#16324f" text-anchor="middle">EX/MEM 保存</text>
+<polyline points="610,306 610,375 887,375 887,294 910,294" fill="none" stroke="#008575" stroke-width="2"/>
+<polygon points="910,294 901.0,290.0 901.0,298.0" fill="#008575"/>
+<rect x="910" y="80" width="165" height="70" rx="8" fill="#f3f6fb" stroke="#d7e1ed"/>
+<text x="992" y="110" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="middle">BEQ 比较器</text>
+<text x="992" y="135" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#16324f" text-anchor="middle">ex_a == ex_rs2</text>
+<polyline points="625,152 625,66 992,66 992,80" fill="none" stroke="#008575" stroke-width="2"/>
+<polygon points="992,80 996.0,71.0 988.0,71.0" fill="#008575"/>
+<polyline points="610,375 870,375 870,121 910,121" fill="none" stroke="#008575" stroke-width="2"/>
+<polygon points="910,121 901.0,117.0 901.0,125.0" fill="#008575"/>
+<text x="25" y="467" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" fill="#64748b" text-anchor="start">优先级：最近的匹配写者优先；00=ID/EX，10=EX/MEM，01=MEM/WB。</text>
+</svg>

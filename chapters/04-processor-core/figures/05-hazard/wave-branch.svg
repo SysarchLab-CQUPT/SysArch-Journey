@@ -1,0 +1,181 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 735" role="img"><title>wave-branch</title>
+<rect width="100%" height="100%" fill="white"/>
+<text x="22" y="32" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" fill="#16324f" text-anchor="start">分支：C11 判断成立，C12 两级失效</text>
+<text x="22" y="57" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#64748b" text-anchor="start">实测 VCD：周期内电平；各周期右边界为采样上升沿（NBA 更新之前）</text>
+<text x="276.0" y="87" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" fill="#2563eb" text-anchor="middle">C9</text>
+<polyline points="220,101 220,685" fill="none" stroke="#e1e8f0" stroke-width="1"/>
+<text x="388.0" y="87" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" fill="#2563eb" text-anchor="middle">C10</text>
+<polyline points="332,101 332,685" fill="none" stroke="#e1e8f0" stroke-width="1"/>
+<text x="500.0" y="87" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" fill="#2563eb" text-anchor="middle">C11</text>
+<polyline points="444,101 444,685" fill="none" stroke="#e1e8f0" stroke-width="1"/>
+<text x="612.0" y="87" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" fill="#2563eb" text-anchor="middle">C12</text>
+<polyline points="556,101 556,685" fill="none" stroke="#e1e8f0" stroke-width="1"/>
+<text x="724.0" y="87" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" fill="#2563eb" text-anchor="middle">C13</text>
+<polyline points="668,101 668,685" fill="none" stroke="#e1e8f0" stroke-width="1"/>
+<text x="836.0" y="87" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" fill="#2563eb" text-anchor="middle">C14</text>
+<polyline points="780,101 780,685" fill="none" stroke="#e1e8f0" stroke-width="1"/>
+<text x="948.0" y="87" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16" fill="#2563eb" text-anchor="middle">C15</text>
+<polyline points="892,101 892,685" fill="none" stroke="#e1e8f0" stroke-width="1"/>
+<text x="25" y="132" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="start">clk</text>
+<polyline points="220,116 276.0,116 276.0,139 332,139 332,116" fill="none" stroke="#64748b" stroke-width="1.5"/>
+<polyline points="332,116 388.0,116 388.0,139 444,139 444,116" fill="none" stroke="#64748b" stroke-width="1.5"/>
+<polyline points="444,116 500.0,116 500.0,139 556,139 556,116" fill="none" stroke="#64748b" stroke-width="1.5"/>
+<polyline points="556,116 612.0,116 612.0,139 668,139 668,116" fill="none" stroke="#64748b" stroke-width="1.5"/>
+<polyline points="668,116 724.0,116 724.0,139 780,139 780,116" fill="none" stroke="#64748b" stroke-width="1.5"/>
+<polyline points="780,116 836.0,116 836.0,139 892,139 892,116" fill="none" stroke="#64748b" stroke-width="1.5"/>
+<polyline points="892,116 948.0,116 948.0,139 1004,139 1004,116" fill="none" stroke="#64748b" stroke-width="1.5"/>
+<text x="25" y="172" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="start">pc_f</text>
+<rect x="222" y="152" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="276.0" y="173" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x1c</text>
+<rect x="334" y="152" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="388.0" y="173" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x20</text>
+<rect x="446" y="152" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="500.0" y="173" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x24</text>
+<rect x="558" y="152" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="612.0" y="173" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x28</text>
+<rect x="670" y="152" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="724.0" y="173" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x2c</text>
+<rect x="782" y="152" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="836.0" y="173" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x30</text>
+<rect x="894" y="152" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="948.0" y="173" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x34</text>
+<text x="25" y="212" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="start">pc_d</text>
+<rect x="222" y="192" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="276.0" y="213" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x18</text>
+<rect x="334" y="192" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="388.0" y="213" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x1c</text>
+<rect x="446" y="192" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="500.0" y="213" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x20</text>
+<rect x="558" y="192" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="612.0" y="213" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">空泡</text>
+<rect x="670" y="192" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="724.0" y="213" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x28</text>
+<rect x="782" y="192" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="836.0" y="213" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x2c</text>
+<rect x="894" y="192" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="948.0" y="213" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x30</text>
+<text x="25" y="252" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="start">pc_e</text>
+<rect x="222" y="232" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="276.0" y="253" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x14</text>
+<rect x="334" y="232" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="388.0" y="253" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x18</text>
+<rect x="446" y="232" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="500.0" y="253" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x1c</text>
+<rect x="558" y="232" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="612.0" y="253" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">空泡</text>
+<rect x="670" y="232" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="724.0" y="253" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">空泡</text>
+<rect x="782" y="232" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="836.0" y="253" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x28</text>
+<rect x="894" y="232" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="948.0" y="253" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x2c</text>
+<text x="25" y="292" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="start">pc_m</text>
+<rect x="222" y="272" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="276.0" y="293" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">空泡</text>
+<rect x="334" y="272" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="388.0" y="293" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x14</text>
+<rect x="446" y="272" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="500.0" y="293" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x18</text>
+<rect x="558" y="272" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="612.0" y="293" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x1c</text>
+<rect x="670" y="272" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="724.0" y="293" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">空泡</text>
+<rect x="782" y="272" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="836.0" y="293" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">空泡</text>
+<rect x="894" y="272" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="948.0" y="293" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x28</text>
+<text x="25" y="332" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="start">pc_w</text>
+<rect x="222" y="312" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="276.0" y="333" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x10</text>
+<rect x="334" y="312" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="388.0" y="333" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">空泡</text>
+<rect x="446" y="312" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="500.0" y="333" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x14</text>
+<rect x="558" y="312" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="612.0" y="333" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x18</text>
+<rect x="670" y="312" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="724.0" y="333" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">0x1c</text>
+<rect x="782" y="312" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="836.0" y="333" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">空泡</text>
+<rect x="894" y="312" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="948.0" y="333" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">空泡</text>
+<text x="25" y="372" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="start">load_use</text>
+<polyline points="220,379 332,379" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="332,379 444,379" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="444,379 556,379" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="556,379 668,379" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="668,379 780,379" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="780,379 892,379" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="892,379 1004,379" fill="none" stroke="#2563eb" stroke-width="2"/>
+<text x="25" y="412" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="start">forward_a</text>
+<rect x="222" y="392" width="108" height="30" rx="2" fill="#eff7f5" stroke="#d7e1ed"/>
+<text x="276.0" y="413" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#008575" text-anchor="middle">01</text>
+<rect x="334" y="392" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="388.0" y="413" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">00</text>
+<rect x="446" y="392" width="108" height="30" rx="2" fill="#eff7f5" stroke="#d7e1ed"/>
+<text x="500.0" y="413" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#008575" text-anchor="middle">01</text>
+<rect x="558" y="392" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="612.0" y="413" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">00</text>
+<rect x="670" y="392" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="724.0" y="413" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">00</text>
+<rect x="782" y="392" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="836.0" y="413" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">00</text>
+<rect x="894" y="392" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="948.0" y="413" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">00</text>
+<text x="25" y="452" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="start">forward_b</text>
+<rect x="222" y="432" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="276.0" y="453" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">00</text>
+<rect x="334" y="432" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="388.0" y="453" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">00</text>
+<rect x="446" y="432" width="108" height="30" rx="2" fill="#eff7f5" stroke="#d7e1ed"/>
+<text x="500.0" y="453" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#008575" text-anchor="middle">10</text>
+<rect x="558" y="432" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="612.0" y="453" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">00</text>
+<rect x="670" y="432" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="724.0" y="453" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">00</text>
+<rect x="782" y="432" width="108" height="30" rx="2" fill="#f5f7fb" stroke="#d7e1ed"/>
+<text x="836.0" y="453" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="middle">00</text>
+<rect x="894" y="432" width="108" height="30" rx="2" fill="#eff7f5" stroke="#d7e1ed"/>
+<text x="948.0" y="453" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#008575" text-anchor="middle">10</text>
+<text x="25" y="492" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="start">redirect</text>
+<polyline points="220,499 332,499" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="332,499 444,499" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="444,499 444,476 556,476" fill="none" stroke="#bc3f4a" stroke-width="2"/>
+<polyline points="556,476 556,499 668,499" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="668,499 780,499" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="780,499 892,499" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="892,499 1004,499" fill="none" stroke="#2563eb" stroke-width="2"/>
+<text x="25" y="532" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="start">pc_en</text>
+<polyline points="220,516 332,516" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="332,516 444,516" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="444,516 556,516" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="556,516 668,516" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="668,516 780,516" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="780,516 892,516" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="892,516 1004,516" fill="none" stroke="#2563eb" stroke-width="2"/>
+<text x="25" y="572" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="start">ifid_en</text>
+<polyline points="220,556 332,556" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="332,556 444,556" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="444,556 556,556" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="556,556 668,556" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="668,556 780,556" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="780,556 892,556" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="892,556 1004,556" fill="none" stroke="#2563eb" stroke-width="2"/>
+<text x="25" y="612" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="start">ifid_flush</text>
+<polyline points="220,619 332,619" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="332,619 444,619" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="444,619 444,596 556,596" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="556,596 556,619 668,619" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="668,619 780,619" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="780,619 892,619" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="892,619 1004,619" fill="none" stroke="#2563eb" stroke-width="2"/>
+<text x="25" y="652" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" fill="#16324f" text-anchor="start">idex_flush</text>
+<polyline points="220,659 332,659" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="332,659 444,659" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="444,659 444,636 556,636" fill="none" stroke="#bc3f4a" stroke-width="2"/>
+<polyline points="556,636 556,659 668,659" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="668,659 780,659" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="780,659 892,659" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polyline points="892,659 1004,659" fill="none" stroke="#2563eb" stroke-width="2"/>
+<text x="24" y="718" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#64748b" text-anchor="start">PC 为字节地址；空泡由 valid=0 表示；10/01 是二进制选择编码。</text>
+</svg>
