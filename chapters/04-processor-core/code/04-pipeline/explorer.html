@@ -1,0 +1,374 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>从结构图到 RTL · 五级流水线图解实验</title><style>
+    :root{--ink:#16324f;--blue:#2563eb;--green:#008575;--red:#bc3f4a}*{box-sizing:border-box}body{margin:0;background:#eef3f8;color:var(--ink);font:16px/1.8 "Microsoft YaHei",sans-serif}header{padding:55px max(28px,calc((100vw - 1140px)/2));background:#122b46;color:white}header small{letter-spacing:.16em;color:#9ebede}h1{font-size:38px;line-height:1.4;margin:18px 0}main{max-width:1200px;margin:auto;padding:28px}section{padding:30px;background:white;border:1px solid #dce5ef;border-radius:16px;margin:0 0 26px}h2{font-size:24px;margin:0 0 18px}p{max-width:80ch}img{display:block;width:100%;height:auto}nav{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0}a{color:var(--blue)}nav a{background:#dfeafb;border-radius:20px;padding:5px 15px;text-decoration:none}.stages{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:20px 0}.stage{padding:15px;background:#f3f6fb;border-top:4px solid var(--blue);border-radius:7px;min-height:116px}.stage b{display:block;font-size:21px}.stage span{font:14px/1.5 Consolas,monospace;overflow-wrap:anywhere}.bubble{border-color:#a7b4c3;color:#687b90}.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}button{border:0;border-radius:7px;background:var(--blue);color:white;padding:9px 16px;cursor:pointer;font:inherit}input{flex:1;min-width:200px}.status{padding:16px;border-left:4px solid var(--green);background:#eaf6f2;min-height:85px}pre{font:14px/1.65 Consolas,monospace;background:#10283f;color:#e0edf8;padding:20px;overflow:auto;border-radius:8px}summary{padding:12px;cursor:pointer;font-weight:bold}details{border:1px solid #dce5ef;margin:10px 0;border-radius:8px}table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:9px;border-bottom:1px solid #dde5ee}.note{color:#5c7087;font-size:14px}.pill{display:inline-block;padding:4px 13px;border-radius:16px;background:#e7f5f0;color:var(--green)}@media(max-width:760px){h1{font-size:27px}.stages{grid-template-columns:1fr}section{padding:18px}main{padding:14px}}@media print{header{background:white;color:#16324f}section{break-inside:avoid}button,input{display:none}}
+    </style><header><small>CHAPTER 04 · STRUCTURE → RTL → WAVEFORM</small><h1>从结构图到 RTL<br>看见五级流水线里的每一拍</h1><p>4.04 / 4.05 配套图解实验。图形由代码生成；逐拍数据来自已运行的 Verilog，波形已与原始 VCD 核对。</p></header><main><nav><a href="#explorer">逐拍实验</a><a href="#fig0">结构到 RTL</a><a href="#fig1">五级数据通路</a><a href="#fig2">前递网络</a><a href="#fig3">指令时序</a><a href="#fig4">Load-Use 波形</a><a href="#fig5">分支冲刷波形</a></nav>
+    <section><h2>先约定这颗教学数据通路的边界</h2><p>32 位、顺序单发射、五级流水；仅支持 ADD / SUB / ADDI / LW / SW / BEQ。指令与数据分开存储，组合读、上升沿写，BEQ 在 EX 级决策。这个固定延迟模型用于解释机制；接同步 BRAM、Cache 或 AXI 时必须重新设计握手和等待。</p><span class="pill">实际仿真：8 / 8 测试通过</span><p class="note">完整教材正文和分析见仓库 04-pipeline.tex、05-hazard.tex 及编译后的 PDF。下方原始代码与教材引用来自同一组源文件。</p></section>
+    <section id="explorer"><h2>逐拍观察：拖动 C1 → C17</h2><div class="controls"><button id="prev">上一拍</button><input id="cycle" type="range" min="1" max="17" value="7" aria-label="仿真周期"><button id="next">下一拍</button><strong id="cycleLabel"></strong></div><div id="stages" class="stages"></div><div id="status" class="status" aria-live="polite"></div><pre id="signals"></pre><details><summary>贯穿示例：地址、机器码和汇编</summary><pre>0000  00500093  addi x1, x0, 5
+0004  00108133  add x2, x1, x1
+0008  401101b3  sub x3, x2, x1
+000c  00302023  sw x3, 0(x0)
+0010  00002203  lw x4, 0(x0)
+0014  002202b3  add x5, x4, x2
+0018  00f00313  addi x6, x0, 15
+001c  00628663  beq x5, x6, +12
+0020  06300393  addi x7, x0, 99
+0024  00702223  sw x7, 4(x0)
+0028  00628433  add x8, x5, x6
+002c  00802423  sw x8, 8(x0)
+</pre></details><p class="note">每一列表示该周期结束的上升沿之前的状态。无效级显示“空泡”，其中旧数据不参与架构更新。</p></section>
+    <section id="fig0"><h2>01 / 结构到 RTL</h2><img alt="结构到 RTL" src="../../figures/04-pipeline/rtl-mapping.svg"></section><section id="fig1"><h2>02 / 五级数据通路</h2><img alt="五级数据通路" src="../../figures/04-pipeline/rtl-datapath.svg"></section><section id="fig2"><h2>03 / 前递网络</h2><img alt="前递网络" src="../../figures/05-hazard/forward-paths.svg"></section><section id="fig3"><h2>04 / 指令时序</h2><img alt="指令时序" src="../../figures/05-hazard/cycle-table.svg"></section><section id="fig4"><h2>05 / Load-Use 波形</h2><img alt="Load-Use 波形" src="../../figures/05-hazard/wave-load-use.svg"></section><section id="fig5"><h2>06 / 分支冲刷波形</h2><img alt="分支冲刷波形" src="../../figures/05-hazard/wave-branch.svg"></section>
+    <section><h2>三条阅读线索</h2><p><b>先找寄存器边界。</b>以 ID/EX 为例，当前指令的 PC、源寄存器号、读值、立即数和后级控制一起进入下一拍。非阻塞赋值的右值来自边沿前，所以多级寄存器同时更新仍然只前进一级。</p><p><b>再问数据何时可用。</b>ALU 的结果在 EX 结束时可用，下一拍可以从 EX/MEM 送回 EX；load 在 EX 得到的只是地址，数据到 MEM 结束才可用。相邻消费者必须留在 ID 一拍。</p><p><b>最后看副作用门控。</b>暂停保持 PC 和 IF/ID，却把 ID/EX 置为无效；分支冲刷取消年轻指令；寄存器写使能和存储器写使能都与 valid 相与。看到无效级仍有旧地址不意味着真的写了内存。</p></section>
+    <section><h2>可运行的代码</h2><p>在仓库根目录运行 <code>python chapters/04-processor-core/code/04-pipeline/run.py</code>。输出位于 <code>build/rtl-pipeline/</code>；<code>trace.csv</code> 是逐拍记录，<code>wave.vcd</code> 可用 GTKWave 打开。</p><details><summary>pipeline_demo.v</summary><pre><code>`timescale 1ns/1ps
+// Five-stage teaching datapath, fixed-latency Harvard memory interfaces.
+// Instruction and data reads are COMBINATIONAL; data writes use posedge clk.
+module pipeline_demo (
+    input wire clk, rst,
+    output reg [31:0] imem_addr,
+    input wire [31:0] imem_rdata,
+    output wire [31:0] dmem_addr, dmem_wdata,
+    output wire dmem_read, dmem_write,
+    input wire [31:0] dmem_rdata,
+    output wire commit_valid, commit_we,
+    output wire [31:0] commit_pc, commit_data,
+    output wire [4:0] commit_rd
+);
+    // IF/ID: the instruction and ITS OWN address travel together.
+    reg ifid_valid;
+    reg [31:0] ifid_pc, ifid_instr;
+    wire [4:0] d_rs1, d_rs2, d_rd;
+    wire [31:0] d_imm, d_rv1, d_rv2;
+    wire d_use1, d_use2, d_rw, d_mr, d_mw, d_ai, d_sub, d_br, d_legal;
+    decoder dec (
+        .instr(ifid_instr), .rs1(d_rs1), .rs2(d_rs2), .rd(d_rd),
+        .imm(d_imm), .uses_rs1(d_use1), .uses_rs2(d_use2),
+        .reg_write(d_rw), .mem_read(d_mr), .mem_write(d_mw),
+        .alu_imm(d_ai), .alu_sub(d_sub), .branch(d_br), .legal(d_legal)
+    );
+
+    // ID/EX contains operands, register numbers and future-stage controls.
+    reg idex_valid;
+    reg [31:0] idex_pc, idex_rv1, idex_rv2, idex_imm;
+    reg [4:0] idex_rs1, idex_rs2, idex_rd;
+    reg idex_use1, idex_use2, idex_rw, idex_mr, idex_mw;
+    reg idex_ai, idex_sub, idex_br;
+    // EX/MEM holds an address/ALU result and forwarded store data.
+    reg exmem_valid;
+    reg [31:0] exmem_pc, exmem_result, exmem_store;
+    reg [4:0] exmem_rd;
+    reg exmem_rw, exmem_mr, exmem_mw;
+    // MEM/WB holds the load result separately from the ALU result.
+    reg memwb_valid;
+    reg [31:0] memwb_pc, memwb_result, memwb_load;
+    reg [4:0] memwb_rd;
+    reg memwb_rw, memwb_mr;
+    wire [31:0] wb_data = memwb_mr ? memwb_load : memwb_result;
+    wire wb_we = !rst &amp;&amp; memwb_valid &amp;&amp; memwb_rw &amp;&amp; memwb_rd != 0;
+    regfile rf (
+        .clk(clk), .rst(rst), .rs1(d_rs1), .rs2(d_rs2),
+        .rd(memwb_rd), .we(wb_we), .wd(wb_data), .rv1(d_rv1), .rv2(d_rv2)
+    );
+
+    wire [1:0] forward_a, forward_b;
+    forward_unit fwd (
+        .ex_valid(idex_valid), .uses_rs1(idex_use1), .uses_rs2(idex_use2),
+        .rs1(idex_rs1), .rs2(idex_rs2),
+        .m_valid(exmem_valid), .m_reg_write(exmem_rw),
+        .m_mem_read(exmem_mr), .m_rd(exmem_rd),
+        .w_valid(memwb_valid), .w_reg_write(memwb_rw), .w_rd(memwb_rd),
+        .forward_a(forward_a), .forward_b(forward_b)
+    );
+    wire [31:0] ex_a = (forward_a == 2&#x27;b10) ? exmem_result :
+                       (forward_a == 2&#x27;b01) ? wb_data : idex_rv1;
+    wire [31:0] ex_rs2 = (forward_b == 2&#x27;b10) ? exmem_result :
+                         (forward_b == 2&#x27;b01) ? wb_data : idex_rv2;
+    // Store/branch use ex_rs2; ALU&#x27;s second operand may instead be immediate.
+    wire [31:0] ex_b = idex_ai ? idex_imm : ex_rs2;
+    wire [31:0] ex_result = idex_sub ? ex_a - ex_b : ex_a + ex_b;
+    wire redirect = idex_valid &amp;&amp; idex_br &amp;&amp; ex_a == ex_rs2;
+    wire [31:0] redirect_pc = idex_pc + idex_imm;
+    wire load_use, pc_en, ifid_en, ifid_flush, idex_flush;
+    hazard_unit hazards (
+        .d_valid(ifid_valid &amp;&amp; d_legal), .d_uses_rs1(d_use1),
+        .d_uses_rs2(d_use2), .d_rs1(d_rs1), .d_rs2(d_rs2),
+        .e_valid(idex_valid), .e_mem_read(idex_mr), .e_rd(idex_rd),
+        .redirect(redirect), .load_use(load_use), .pc_en(pc_en),
+        .ifid_en(ifid_en), .ifid_flush(ifid_flush), .idex_flush(idex_flush)
+    );
+
+    // IF: synchronous reset &gt; redirect &gt; hold/advance.
+    always @(posedge clk) begin
+        if (rst) imem_addr &lt;= 0;
+        else if (pc_en) imem_addr &lt;= redirect ? redirect_pc : imem_addr + 4;
+    end
+    // Flush has priority over enable: killed instructions must not survive.
+    always @(posedge clk) begin
+        if (rst || ifid_flush) begin
+            ifid_valid &lt;= 0;
+        end else if (ifid_en) begin
+            ifid_valid &lt;= 1;
+            ifid_pc &lt;= imem_addr;
+            ifid_instr &lt;= imem_rdata;
+        end
+    end
+    // Hold PC and IF/ID on load-use, but INSERT A BUBBLE into ID/EX.
+    always @(posedge clk) begin
+        if (rst || idex_flush) begin
+            idex_valid &lt;= 0;
+        end else begin
+            idex_valid &lt;= ifid_valid &amp;&amp; d_legal;
+            idex_pc &lt;= ifid_pc;
+            idex_rv1 &lt;= d_rv1; idex_rv2 &lt;= d_rv2; idex_imm &lt;= d_imm;
+            idex_rs1 &lt;= d_rs1; idex_rs2 &lt;= d_rs2; idex_rd &lt;= d_rd;
+            idex_use1 &lt;= d_use1; idex_use2 &lt;= d_use2;
+            idex_rw &lt;= d_rw; idex_mr &lt;= d_mr; idex_mw &lt;= d_mw;
+            idex_ai &lt;= d_ai; idex_sub &lt;= d_sub; idex_br &lt;= d_br;
+        end
+    end
+    // Older instructions continue, even while the front end is paused/flushed.
+    always @(posedge clk) begin
+        if (rst) exmem_valid &lt;= 0;
+        else begin
+            exmem_valid &lt;= idex_valid;
+            exmem_pc &lt;= idex_pc; exmem_result &lt;= ex_result;
+            exmem_store &lt;= ex_rs2; exmem_rd &lt;= idex_rd;
+            exmem_rw &lt;= idex_rw; exmem_mr &lt;= idex_mr; exmem_mw &lt;= idex_mw;
+        end
+    end
+    always @(posedge clk) begin
+        if (rst) memwb_valid &lt;= 0;
+        else begin
+            memwb_valid &lt;= exmem_valid;
+            memwb_pc &lt;= exmem_pc; memwb_rd &lt;= exmem_rd;
+            memwb_result &lt;= exmem_result; memwb_load &lt;= dmem_rdata;
+            memwb_rw &lt;= exmem_rw; memwb_mr &lt;= exmem_mr;
+        end
+    end
+    assign dmem_addr  = exmem_result;
+    assign dmem_wdata = exmem_store;
+    assign dmem_read  = !rst &amp;&amp; exmem_valid &amp;&amp; exmem_mr;
+    assign dmem_write = !rst &amp;&amp; exmem_valid &amp;&amp; exmem_mw;
+    assign commit_valid = !rst &amp;&amp; memwb_valid;
+    assign commit_pc = memwb_pc;
+    assign commit_we = wb_we;
+    assign commit_rd = memwb_rd;
+    assign commit_data = wb_data;
+endmodule
+</code></pre></details><details><summary>decoder.v</summary><pre><code>`timescale 1ns/1ps
+// Teaching subset: ADD, SUB, ADDI, LW, SW, BEQ. Not a complete RV32I decoder.
+module decoder (
+    input  wire [31:0] instr,
+    output wire [4:0]  rs1, rs2, rd,
+    output reg  [31:0] imm,
+    output reg uses_rs1, uses_rs2,
+    output reg reg_write, mem_read, mem_write,
+    output reg alu_imm, alu_sub, branch, legal
+);
+    assign rs1 = instr[19:15];
+    assign rs2 = instr[24:20];
+    assign rd  = instr[11:7];
+    always @* begin
+        imm = 32&#x27;b0;
+        uses_rs1 = 0; uses_rs2 = 0;
+        reg_write = 0; mem_read = 0; mem_write = 0;
+        alu_imm = 0; alu_sub = 0; branch = 0; legal = 0;
+        case (instr[6:0])
+            7&#x27;b0110011: begin
+                if (instr[14:12] == 3&#x27;b000 &amp;&amp;
+                    (instr[31:25] == 7&#x27;b0000000 ||
+                     instr[31:25] == 7&#x27;b0100000)) begin
+                    legal = 1; uses_rs1 = 1; uses_rs2 = 1;
+                    reg_write = 1; alu_sub = instr[30];
+                end
+            end
+            7&#x27;b0010011: begin
+                if (instr[14:12] == 3&#x27;b000) begin
+                    legal = 1; uses_rs1 = 1; reg_write = 1; alu_imm = 1;
+                    imm = {{20{instr[31]}}, instr[31:20]};
+                end
+            end
+            7&#x27;b0000011: begin
+                if (instr[14:12] == 3&#x27;b010) begin
+                    legal = 1; uses_rs1 = 1; reg_write = 1;
+                    mem_read = 1; alu_imm = 1;
+                    imm = {{20{instr[31]}}, instr[31:20]};
+                end
+            end
+            7&#x27;b0100011: begin
+                if (instr[14:12] == 3&#x27;b010) begin
+                    legal = 1; uses_rs1 = 1; uses_rs2 = 1;
+                    mem_write = 1; alu_imm = 1;
+                    imm = {{20{instr[31]}}, instr[31:25], instr[11:7]};
+                end
+            end
+            7&#x27;b1100011: begin
+                if (instr[14:12] == 3&#x27;b000) begin
+                    legal = 1; uses_rs1 = 1; uses_rs2 = 1; branch = 1;
+                    imm = {{19{instr[31]}}, instr[31], instr[7],
+                           instr[30:25], instr[11:8], 1&#x27;b0};
+                end
+            end
+            default: begin end
+        endcase
+    end
+endmodule
+</code></pre></details><details><summary>regfile.v</summary><pre><code>`timescale 1ns/1ps
+module regfile (
+    input wire clk, rst,
+    input wire [4:0] rs1, rs2, rd,
+    input wire we,
+    input wire [31:0] wd,
+    output wire [31:0] rv1, rv2
+);
+    reg [31:0] regs [0:31];
+    integer i;
+    always @(posedge clk) begin
+        if (rst) begin
+            for (i = 0; i &lt; 32; i = i + 1) regs[i] &lt;= 0;
+        end else if (we &amp;&amp; rd != 0) begin
+            regs[rd] &lt;= wd;
+        end
+    end
+    // Explicit WB -&gt; ID bypass avoids reliance on simulator scheduling or
+    // a particular register-file primitive&#x27;s read-during-write behavior.
+    assign rv1 = (rs1 == 0) ? 32&#x27;b0 :
+                 (we &amp;&amp; rd == rs1) ? wd : regs[rs1];
+    assign rv2 = (rs2 == 0) ? 32&#x27;b0 :
+                 (we &amp;&amp; rd == rs2) ? wd : regs[rs2];
+endmodule
+</code></pre></details><details><summary>forward_unit.v</summary><pre><code>`timescale 1ns/1ps
+module forward_unit (
+    input wire ex_valid, uses_rs1, uses_rs2,
+    input wire [4:0] rs1, rs2,
+    input wire m_valid, m_reg_write, m_mem_read,
+    input wire [4:0] m_rd,
+    input wire w_valid, w_reg_write,
+    input wire [4:0] w_rd,
+    output reg [1:0] forward_a, forward_b
+);
+    // 00: ID/EX value; 10: EX/MEM ALU result; 01: MEM/WB writeback value.
+    wire m_a = ex_valid &amp;&amp; uses_rs1 &amp;&amp; rs1 != 0 &amp;&amp;
+               m_valid &amp;&amp; m_reg_write &amp;&amp; m_rd == rs1;
+    wire m_b = ex_valid &amp;&amp; uses_rs2 &amp;&amp; rs2 != 0 &amp;&amp;
+               m_valid &amp;&amp; m_reg_write &amp;&amp; m_rd == rs2;
+    wire w_a = ex_valid &amp;&amp; uses_rs1 &amp;&amp; rs1 != 0 &amp;&amp;
+               w_valid &amp;&amp; w_reg_write &amp;&amp; w_rd == rs1;
+    wire w_b = ex_valid &amp;&amp; uses_rs2 &amp;&amp; rs2 != 0 &amp;&amp;
+               w_valid &amp;&amp; w_reg_write &amp;&amp; w_rd == rs2;
+    always @* begin
+        forward_a = 2&#x27;b00;
+        forward_b = 2&#x27;b00;
+        // The youngest matching writer owns the value. If it is a load,
+        // it is not ready here; do NOT fall through to an older WB writer.
+        if (m_a) begin
+            if (!m_mem_read) forward_a = 2&#x27;b10;
+        end else if (w_a) forward_a = 2&#x27;b01;
+        if (m_b) begin
+            if (!m_mem_read) forward_b = 2&#x27;b10;
+        end else if (w_b) forward_b = 2&#x27;b01;
+    end
+endmodule
+</code></pre></details><details><summary>hazard_unit.v</summary><pre><code>`timescale 1ns/1ps
+module hazard_unit (
+    input wire d_valid, d_uses_rs1, d_uses_rs2,
+    input wire [4:0] d_rs1, d_rs2,
+    input wire e_valid, e_mem_read,
+    input wire [4:0] e_rd,
+    input wire redirect,
+    output wire load_use, pc_en, ifid_en, ifid_flush, idex_flush
+);
+    assign load_use = d_valid &amp;&amp; e_valid &amp;&amp; e_mem_read &amp;&amp; e_rd != 0 &amp;&amp;
+                      ((d_uses_rs1 &amp;&amp; d_rs1 == e_rd) ||
+                       (d_uses_rs2 &amp;&amp; d_rs2 == e_rd));
+    assign pc_en      = redirect || !load_use;
+    assign ifid_en    = !load_use;
+    assign ifid_flush = redirect;
+    assign idex_flush = redirect || load_use;
+endmodule
+</code></pre></details><details><summary>tb_pipeline.sv</summary><pre><code>`timescale 1ns/1ps
+// SystemVerilog is used only by the testbench; the DUT is Verilog-2001.
+module tb_pipeline;
+    reg clk = 0;
+    reg rst = 1;
+    always #5 clk = ~clk;
+    wire [31:0] ia, da, dw, ir, dr, cp, cd;
+    wire mr, mw, cv, cw;
+    wire [4:0] cr;
+    reg [31:0] imem [0:511];
+    reg [31:0] dmem [0:255];
+    assign ir = imem[ia[10:2]];
+    assign dr = dmem[da[9:2]];
+    pipeline_demo dut (
+        .clk(clk), .rst(rst), .imem_addr(ia), .imem_rdata(ir),
+        .dmem_addr(da), .dmem_wdata(dw), .dmem_read(mr), .dmem_write(mw),
+        .dmem_rdata(dr), .commit_valid(cv), .commit_we(cw),
+        .commit_pc(cp), .commit_rd(cr), .commit_data(cd)
+    );
+    integer cycle = 0, max_cycles, trace_fd, event_fd, i;
+    reg prev_stall = 0, prev_redirect = 0;
+    reg [31:0] prev_pc, prev_dpc, prev_instr, prev_target;
+    reg [31:0] prev_epc;
+    reg prev_evalid;
+    initial begin
+        for (i = 0; i &lt; 512; i = i + 1) imem[i] = 32&#x27;h00000013;
+        for (i = 0; i &lt; 256; i = i + 1) dmem[i] = 0;
+        $readmemh(&quot;program.hex&quot;, imem);
+        $readmemh(&quot;memory.hex&quot;, dmem);
+        if (!$value$plusargs(&quot;CYCLES=%d&quot;, max_cycles)) max_cycles = 60;
+        trace_fd = $fopen(&quot;trace.csv&quot;, &quot;w&quot;);
+        event_fd = $fopen(&quot;events.csv&quot;, &quot;w&quot;);
+        $fdisplay(trace_fd, &quot;cycle,pc_f,pc_d,pc_e,pc_m,pc_w,load_use,forward_a,forward_b,redirect,pc_en,ifid_en,ifid_flush,idex_flush,ex_a,ex_rs2,wb_we,wb_rd,wb_data,mem_we,mem_addr,mem_data&quot;);
+        $fdisplay(event_fd, &quot;kind,pc,dest,data&quot;);
+        $dumpfile(&quot;wave.vcd&quot;);
+        $dumpvars(0, tb_pipeline);
+        repeat (2) @(negedge clk);
+        #1 rst = 0;
+    end
+    // These samples describe the cycle ENDING at this rising edge.
+    // All RHS values are sampled before DUT nonblocking assignments update.
+    always @(posedge clk) begin
+        if (!rst) begin
+            cycle = cycle + 1;
+            if (ia[1:0] != 0 || ia &gt;= 2048) $fatal(1, &quot;instruction address out of model&quot;);
+            if ((mr || mw) &amp;&amp; (da[1:0] != 0 || da &gt;= 1024))
+                $fatal(1, &quot;unaligned/out-of-range data access&quot;);
+            if (dut.ifid_valid &amp;&amp; !dut.d_legal) $fatal(1, &quot;unsupported instruction&quot;);
+            if (prev_stall &amp;&amp; !prev_redirect) begin
+                if (ia !== prev_pc || dut.ifid_pc !== prev_dpc ||
+                    dut.ifid_instr !== prev_instr || dut.idex_valid)
+                    $fatal(1, &quot;load-use must hold front end and bubble ID/EX&quot;);
+                if (dut.exmem_valid !== prev_evalid || dut.exmem_pc !== prev_epc)
+                    $fatal(1, &quot;load must advance into MEM&quot;);
+            end
+            if (prev_redirect &amp;&amp; (ia !== prev_target || dut.ifid_valid || dut.idex_valid))
+                $fatal(1, &quot;redirect must replace PC and invalidate younger stages&quot;);
+            if (dut.idex_valid &amp;&amp; dut.exmem_valid &amp;&amp; dut.exmem_mr &amp;&amp; dut.exmem_rd != 0 &amp;&amp;
+                ((dut.idex_use1 &amp;&amp; dut.idex_rs1 == dut.exmem_rd) ||
+                 (dut.idex_use2 &amp;&amp; dut.idex_rs2 == dut.exmem_rd)))
+                $fatal(1, &quot;consumer reached EX before youngest load is ready&quot;);
+            if (dut.rf.regs[0] !== 0) $fatal(1, &quot;x0 changed&quot;);
+            if (mw) begin
+                dmem[da[9:2]] &lt;= dw;
+                $fdisplay(event_fd,&quot;S,%08x,%08x,%08x&quot;,dut.exmem_pc,da,dw);
+            end
+            if (cw) $fdisplay(event_fd,&quot;W,%08x,%08x,%08x&quot;,cp,{27&#x27;b0,cr},cd);
+            $fdisplay(trace_fd,&quot;%0d,%08x,%08x,%08x,%08x,%08x,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%08x,%08x,%0d,%0d,%08x,%0d,%08x,%08x&quot;,
+                cycle,ia,dut.ifid_valid?dut.ifid_pc:32&#x27;hffffffff,
+                dut.idex_valid?dut.idex_pc:32&#x27;hffffffff,
+                dut.exmem_valid?dut.exmem_pc:32&#x27;hffffffff,
+                dut.memwb_valid?dut.memwb_pc:32&#x27;hffffffff,
+                dut.load_use,dut.forward_a,dut.forward_b,dut.redirect,
+                dut.pc_en,dut.ifid_en,dut.ifid_flush,dut.idex_flush,
+                dut.ex_a,dut.ex_rs2,cw,cr,cd,mw,da,dw);
+            prev_stall = dut.load_use; prev_redirect = dut.redirect;
+            prev_pc = ia; prev_dpc = dut.ifid_pc; prev_instr = dut.ifid_instr;
+            prev_target = dut.redirect_pc;
+            prev_epc = dut.idex_pc; prev_evalid = dut.idex_valid;
+            if (cycle == max_cycles) begin
+                $fclose(trace_fd); $fclose(event_fd);
+                $display(&quot;PASS: cycle invariants (%0d cycles)&quot;, cycle);
+                $finish;
+            end
+        end
+    end
+endmodule
+</code></pre></details></section><footer class="note">配套 Issue #6 · 2026-10-23 · 所有图片均为可重生成的 SVG / PDF 矢量图</footer></main>
+    <script>const rows=[{"cycle": "1", "pc_f": "00000000", "pc_d": "ffffffff", "pc_e": "ffffffff", "pc_m": "ffffffff", "pc_w": "ffffffff", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "xxxxxxxx", "ex_rs2": "xxxxxxxx", "wb_we": "0", "wb_rd": "x", "wb_data": "xxxxxxxx", "mem_we": "0", "mem_addr": "xxxxxxxx", "mem_data": "xxxxxxxx"}, {"cycle": "2", "pc_f": "00000004", "pc_d": "00000000", "pc_e": "ffffffff", "pc_m": "ffffffff", "pc_w": "ffffffff", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "xxxxxxxx", "ex_rs2": "xxxxxxxx", "wb_we": "0", "wb_rd": "x", "wb_data": "xxxxxxxx", "mem_we": "0", "mem_addr": "xxxxxxxx", "mem_data": "xxxxxxxx"}, {"cycle": "3", "pc_f": "00000008", "pc_d": "00000004", "pc_e": "00000000", "pc_m": "ffffffff", "pc_w": "ffffffff", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "x", "wb_data": "xxxxxxxx", "mem_we": "0", "mem_addr": "xxxxxxxx", "mem_data": "xxxxxxxx"}, {"cycle": "4", "pc_f": "0000000c", "pc_d": "00000008", "pc_e": "00000004", "pc_m": "00000000", "pc_w": "ffffffff", "load_use": "0", "forward_a": "2", "forward_b": "2", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000005", "ex_rs2": "00000005", "wb_we": "0", "wb_rd": "x", "wb_data": "xxxxxxxx", "mem_we": "0", "mem_addr": "00000005", "mem_data": "00000000"}, {"cycle": "5", "pc_f": "00000010", "pc_d": "0000000c", "pc_e": "00000008", "pc_m": "00000004", "pc_w": "00000000", "load_use": "0", "forward_a": "2", "forward_b": "1", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "0000000a", "ex_rs2": "00000005", "wb_we": "1", "wb_rd": "1", "wb_data": "00000005", "mem_we": "0", "mem_addr": "0000000a", "mem_data": "00000005"}, {"cycle": "6", "pc_f": "00000014", "pc_d": "00000010", "pc_e": "0000000c", "pc_m": "00000008", "pc_w": "00000004", "load_use": "0", "forward_a": "0", "forward_b": "2", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000005", "wb_we": "1", "wb_rd": "2", "wb_data": "0000000a", "mem_we": "0", "mem_addr": "00000005", "mem_data": "00000005"}, {"cycle": "7", "pc_f": "00000018", "pc_d": "00000014", "pc_e": "00000010", "pc_m": "0000000c", "pc_w": "00000008", "load_use": "1", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "0", "ifid_en": "0", "ifid_flush": "0", "idex_flush": "1", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "1", "wb_rd": "3", "wb_data": "00000005", "mem_we": "1", "mem_addr": "00000000", "mem_data": "00000005"}, {"cycle": "8", "pc_f": "00000018", "pc_d": "00000014", "pc_e": "ffffffff", "pc_m": "00000010", "pc_w": "0000000c", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "9", "pc_f": "0000001c", "pc_d": "00000018", "pc_e": "00000014", "pc_m": "ffffffff", "pc_w": "00000010", "load_use": "0", "forward_a": "1", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000005", "ex_rs2": "0000000a", "wb_we": "1", "wb_rd": "4", "wb_data": "00000005", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "10", "pc_f": "00000020", "pc_d": "0000001c", "pc_e": "00000018", "pc_m": "00000014", "pc_w": "ffffffff", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "4", "wb_data": "00000005", "mem_we": "0", "mem_addr": "0000000f", "mem_data": "0000000a"}, {"cycle": "11", "pc_f": "00000024", "pc_d": "00000020", "pc_e": "0000001c", "pc_m": "00000018", "pc_w": "00000014", "load_use": "0", "forward_a": "1", "forward_b": "2", "redirect": "1", "pc_en": "1", "ifid_en": "1", "ifid_flush": "1", "idex_flush": "1", "ex_a": "0000000f", "ex_rs2": "0000000f", "wb_we": "1", "wb_rd": "5", "wb_data": "0000000f", "mem_we": "0", "mem_addr": "0000000f", "mem_data": "00000000"}, {"cycle": "12", "pc_f": "00000028", "pc_d": "ffffffff", "pc_e": "ffffffff", "pc_m": "0000001c", "pc_w": "00000018", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "1", "wb_rd": "6", "wb_data": "0000000f", "mem_we": "0", "mem_addr": "0000001e", "mem_data": "0000000f"}, {"cycle": "13", "pc_f": "0000002c", "pc_d": "00000028", "pc_e": "ffffffff", "pc_m": "ffffffff", "pc_w": "0000001c", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000005", "wb_we": "0", "wb_rd": "12", "wb_data": "0000001e", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "14", "pc_f": "00000030", "pc_d": "0000002c", "pc_e": "00000028", "pc_m": "ffffffff", "pc_w": "ffffffff", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "0000000f", "ex_rs2": "0000000f", "wb_we": "0", "wb_rd": "12", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000063", "mem_data": "00000005"}, {"cycle": "15", "pc_f": "00000034", "pc_d": "00000030", "pc_e": "0000002c", "pc_m": "00000028", "pc_w": "ffffffff", "load_use": "0", "forward_a": "0", "forward_b": "2", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "0000001e", "wb_we": "0", "wb_rd": "7", "wb_data": "00000063", "mem_we": "0", "mem_addr": "0000001e", "mem_data": "0000000f"}, {"cycle": "16", "pc_f": "00000038", "pc_d": "00000034", "pc_e": "00000030", "pc_m": "0000002c", "pc_w": "00000028", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "1", "wb_rd": "8", "wb_data": "0000001e", "mem_we": "1", "mem_addr": "00000008", "mem_data": "0000001e"}, {"cycle": "17", "pc_f": "0000003c", "pc_d": "00000038", "pc_e": "00000034", "pc_m": "00000030", "pc_w": "0000002c", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "8", "wb_data": "00000008", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "18", "pc_f": "00000040", "pc_d": "0000003c", "pc_e": "00000038", "pc_m": "00000034", "pc_w": "00000030", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "19", "pc_f": "00000044", "pc_d": "00000040", "pc_e": "0000003c", "pc_m": "00000038", "pc_w": "00000034", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "20", "pc_f": "00000048", "pc_d": "00000044", "pc_e": "00000040", "pc_m": "0000003c", "pc_w": "00000038", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "21", "pc_f": "0000004c", "pc_d": "00000048", "pc_e": "00000044", "pc_m": "00000040", "pc_w": "0000003c", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "22", "pc_f": "00000050", "pc_d": "0000004c", "pc_e": "00000048", "pc_m": "00000044", "pc_w": "00000040", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "23", "pc_f": "00000054", "pc_d": "00000050", "pc_e": "0000004c", "pc_m": "00000048", "pc_w": "00000044", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "24", "pc_f": "00000058", "pc_d": "00000054", "pc_e": "00000050", "pc_m": "0000004c", "pc_w": "00000048", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "25", "pc_f": "0000005c", "pc_d": "00000058", "pc_e": "00000054", "pc_m": "00000050", "pc_w": "0000004c", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "26", "pc_f": "00000060", "pc_d": "0000005c", "pc_e": "00000058", "pc_m": "00000054", "pc_w": "00000050", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "27", "pc_f": "00000064", "pc_d": "00000060", "pc_e": "0000005c", "pc_m": "00000058", "pc_w": "00000054", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "28", "pc_f": "00000068", "pc_d": "00000064", "pc_e": "00000060", "pc_m": "0000005c", "pc_w": "00000058", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "29", "pc_f": "0000006c", "pc_d": "00000068", "pc_e": "00000064", "pc_m": "00000060", "pc_w": "0000005c", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "30", "pc_f": "00000070", "pc_d": "0000006c", "pc_e": "00000068", "pc_m": "00000064", "pc_w": "00000060", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "31", "pc_f": "00000074", "pc_d": "00000070", "pc_e": "0000006c", "pc_m": "00000068", "pc_w": "00000064", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "32", "pc_f": "00000078", "pc_d": "00000074", "pc_e": "00000070", "pc_m": "0000006c", "pc_w": "00000068", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "33", "pc_f": "0000007c", "pc_d": "00000078", "pc_e": "00000074", "pc_m": "00000070", "pc_w": "0000006c", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "34", "pc_f": "00000080", "pc_d": "0000007c", "pc_e": "00000078", "pc_m": "00000074", "pc_w": "00000070", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "35", "pc_f": "00000084", "pc_d": "00000080", "pc_e": "0000007c", "pc_m": "00000078", "pc_w": "00000074", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}, {"cycle": "36", "pc_f": "00000088", "pc_d": "00000084", "pc_e": "00000080", "pc_m": "0000007c", "pc_w": "00000078", "load_use": "0", "forward_a": "0", "forward_b": "0", "redirect": "0", "pc_en": "1", "ifid_en": "1", "ifid_flush": "0", "idex_flush": "0", "ex_a": "00000000", "ex_rs2": "00000000", "wb_we": "0", "wb_rd": "0", "wb_data": "00000000", "mem_we": "0", "mem_addr": "00000000", "mem_data": "00000000"}];const program={"0": "addi x1, x0, 5", "4": "add x2, x1, x1", "8": "sub x3, x2, x1", "12": "sw x3, 0(x0)", "16": "lw x4, 0(x0)", "20": "add x5, x4, x2", "24": "addi x6, x0, 15", "28": "beq x5, x6, +12", "32": "addi x7, x0, 99", "36": "sw x7, 4(x0)", "40": "add x8, x5, x6", "44": "sw x8, 8(x0)"};const slider=document.getElementById('cycle');function show(){const c=Number(slider.value),r=rows[c-1];document.getElementById('cycleLabel').textContent='C'+c;document.getElementById('stages').innerHTML=['IF','ID','EX','MEM','WB'].map((s,i)=>{const pc=r[['pc_f','pc_d','pc_e','pc_m','pc_w'][i]],v=pc!=='ffffffff';return `<div class="stage ${v?'':'bubble'}"><b>${s}</b><span>${v?'0x'+pc.slice(-2)+'<br>'+ (program[parseInt(pc,16)]||'NOP (填充)'):'空泡 / valid = 0'}</span></div>`}).join('');let msg='各级正常推进。先看每级 PC，再看前递选择及写使能。';if(c===4)msg='ADD 的两个源操作数均来自 EX/MEM：forward_a = forward_b = 10，5 + 5 = 10。';if(c===5)msg='SUB 的 A 端取较新的 EX/MEM，B 端取 MEM/WB：10 − 5 = 5。';if(c===6)msg='SW 的数据由 EX/MEM 前递到 ex_rs2；ALU 的 B 端仍选择立即数 0。';if(c===7)msg='LW 在 EX、ADD 在 ID：load_use = 1。此边沿保持 PC 和 IF/ID，向 ID/EX 注入空泡，LW 继续到 MEM。';if(c===8)msg='EX 出现空泡；ADD 仍在 ID；LW 已到 MEM。本周期解除暂停，边沿后 ADD 进入 EX。';if(c===9)msg='ADD 进入 EX，从 MEM/WB 前递载入值 5，与 x2 的 10 相加得到 15。';if(c===11)msg='BEQ 比较两个前递值 15：redirect = 1。目标是 0x1c + 12 = 0x28；IF/ID 与 ID/EX 在边沿失效。';if(c===12)msg='目标指令在 IF；ID、EX 为空泡。错误路径的 ADDI 和 SW 不会产生写回或存储副作用。';document.getElementById('status').textContent=msg;document.getElementById('signals').textContent=['load_use','forward_a','forward_b','redirect','pc_en','ifid_en','ifid_flush','idex_flush'].map(k=>k.padEnd(13)+' = '+(k.startsWith('forward')?Number(r[k]).toString(2).padStart(2,'0'):r[k])).join('\n');}slider.oninput=show;document.getElementById('prev').onclick=()=>{slider.value=Math.max(1,Number(slider.value)-1);show()};document.getElementById('next').onclick=()=>{slider.value=Math.min(17,Number(slider.value)+1);show()};show();</script></html>

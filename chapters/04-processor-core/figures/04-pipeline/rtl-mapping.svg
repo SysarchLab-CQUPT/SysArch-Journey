@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 425" role="img"><title>rtl-mapping</title>
+<rect width="100%" height="100%" fill="white"/>
+<text x="26" y="34" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="23" fill="#16324f" text-anchor="start">组合逻辑决定“下一个值”，时序逻辑决定“何时保存”</text>
+<rect x="26" y="78" width="328" height="174" rx="8" fill="#f3f6fb" stroke="#d7e1ed"/>
+<text x="42" y="110" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" fill="#2563eb" text-anchor="start">寄存器 / D 触发器</text>
+<text x="42" y="148" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="start">posedge clk</text>
+<text x="42" y="180" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="start">q &lt;= d;</text>
+<text x="42" y="212" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="start">只在时钟边沿更新</text>
+<rect x="386" y="78" width="328" height="174" rx="8" fill="#f3f6fb" stroke="#d7e1ed"/>
+<text x="402" y="110" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" fill="#2563eb" text-anchor="start">MUX / 选择器</text>
+<text x="402" y="148" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="start">assign y = sel ? b : a;</text>
+<text x="402" y="180" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="start">两个数据入口，一个选择信号</text>
+<text x="402" y="212" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="start">选择信号变化即重新求值</text>
+<rect x="746" y="78" width="328" height="174" rx="8" fill="#f3f6fb" stroke="#d7e1ed"/>
+<text x="762" y="110" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" fill="#2563eb" text-anchor="start">ALU / 组合运算</text>
+<text x="762" y="148" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="start">alu_sub ? a-b : a+b</text>
+<text x="762" y="180" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="start">结果依赖当前操作数</text>
+<text x="762" y="212" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="15" fill="#16324f" text-anchor="start">没有独立时钟</text>
+<rect x="100" y="302" width="215" height="68" rx="8" fill="#e8f4f0" stroke="#d7e1ed"/>
+<text x="207" y="344" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" fill="#16324f" text-anchor="middle">当前流水寄存器 Q</text>
+<rect x="442" y="302" width="215" height="68" rx="8" fill="#f3f6fb" stroke="#d7e1ed"/>
+<text x="550" y="344" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" fill="#16324f" text-anchor="middle">组合电路计算 D</text>
+<rect x="785" y="302" width="215" height="68" rx="8" fill="#e8f4f0" stroke="#d7e1ed"/>
+<text x="892" y="344" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" fill="#16324f" text-anchor="middle">下一组寄存器 Q</text>
+<polyline points="315,336 442,336" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polygon points="442,336 433.0,332.0 433.0,340.0" fill="#2563eb"/>
+<polyline points="657,336 785,336" fill="none" stroke="#2563eb" stroke-width="2"/>
+<polygon points="785,336 776.0,332.0 776.0,340.0" fill="#2563eb"/>
+<text x="709" y="296" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="14" fill="#2563eb" text-anchor="middle">上升沿采样</text>
+</svg>
