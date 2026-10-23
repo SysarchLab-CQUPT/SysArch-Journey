@@ -572,7 +572,7 @@
 
     @media (max-width: 640px) {
       :root {
-        --header-height: 52px;
+        --header-height: 78px;
         --info-height: 42px;
       }
 
@@ -590,7 +590,10 @@
       }
 
       .subtitle {
-        display: none;
+        display: block;
+        margin-top: 4px;
+        font-size: 11px;
+        line-height: 1.35;
       }
 
       .download {
@@ -842,6 +845,7 @@
   <script>
     (() => {
       const pagesContainer = document.getElementById('pdf-pages');
+      const appHeader = document.querySelector('header');
       const status = document.getElementById('status');
       const fallback = document.getElementById('fallback');
       const previousButton = document.getElementById('previous-page');
@@ -1369,6 +1373,13 @@
         resizeTimer = setTimeout(refreshRenderedPages, 100);
       };
 
+      const syncHeaderHeight = () => {
+        const height = Math.ceil(appHeader.getBoundingClientRect().height);
+        if (height > 0) {
+          document.documentElement.style.setProperty('--header-height', `${height}px`);
+        }
+      };
+
       const syncInfoHeight = () => {
         const height = Math.ceil(bookInfo.getBoundingClientRect().height);
         if (height > 0) {
@@ -1541,6 +1552,7 @@
             schedulePageRefresh();
           }
         }).observe(document.querySelector('main'));
+        new ResizeObserver(syncHeaderHeight).observe(appHeader);
         new ResizeObserver(syncInfoHeight).observe(bookInfo);
       }
 
@@ -1561,6 +1573,7 @@
         console.warn('无法读取数据栏展开状态', error);
       }
       setInfoCollapsed(!expandBookInfo, false);
+      syncHeaderHeight();
 
       loadBookInfo();
       loadPdf();
