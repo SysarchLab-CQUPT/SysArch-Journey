@@ -65,16 +65,6 @@ jobs:
           mkdir -p "$SITE_DIR"
           cp build/main.pdf "$SITE_DIR/main.pdf"
           cp .github/pages/index.html "$SITE_DIR/index.html"
-          # Keep the chapter's full HTML text, RTL and SVG paths together.
-          mkdir -p "$SITE_DIR/chapters/04-processor-core/code"
-          mkdir -p "$SITE_DIR/chapters/04-processor-core/figures"
-          cp -R chapters/04-processor-core/code/04-pipeline \
-            "$SITE_DIR/chapters/04-processor-core/code/"
-          cp -R chapters/04-processor-core/figures/04-pipeline \
-            chapters/04-processor-core/figures/05-hazard \
-            "$SITE_DIR/chapters/04-processor-core/figures/"
-          test -s "$SITE_DIR/chapters/04-processor-core/code/04-pipeline/index.html"
-          test -s "$SITE_DIR/chapters/04-processor-core/figures/05-hazard/wave-load-use.svg"
           mkdir -p "$SITE_DIR/vendor/pdfjs"
           curl -fsSL --retry 3 --retry-delay 2 \
             "https://registry.npmjs.org/pdfjs-dist/-/pdfjs-dist-3.11.174.tgz" \
