@@ -60,24 +60,10 @@ jobs:
               errors.push('“预估天数”必须是大于 0 的数字，单位为天。');
             }
 
-            const ddl = requiredSection('截止时间（DDL）');
-            const ddlMatch = ddl.match(
-              /^(\d{4})-(\d{2})-(\d{2}) ((?:[01]\d|2[0-3]):[0-5]\d|24:00)$/
-            );
-            if (ddl && !ddlMatch) {
-              errors.push('“截止时间（DDL）”格式必须为 `YYYY-MM-DD HH:mm`，不需要填写时区。');
-            } else if (ddlMatch) {
-              const [, year, month, day] = ddlMatch.map(Number);
-              const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-              if (month < 1 || month > 12 || day < 1 || day > daysInMonth) {
-                errors.push('“截止时间（DDL）”必须是有效的日期。');
-              }
-            }
-
             const marker = '<!-- task-template-check -->';
             const result = errors.length
               ? `${marker}\n## Issue 模板检测未通过\n\n${errors.map(error => `- ${error}`).join('\n')}\n\n请编辑 Issue 修正以上内容，CI 会自动重新检测。`
-              : `${marker}\n## Issue 模板检测通过\n\n任务标题和必填字段均符合规范。`;
+              : `${marker}\n## Issue 模板检测通过\n\n任务标题和必填字段均符合规范。认领确认后将按预估工作日自动生成 DDL。`;
 
             const comments = await github.paginate(github.rest.issues.listComments, {
               owner: context.repo.owner,

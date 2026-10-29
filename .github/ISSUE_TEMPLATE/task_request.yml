@@ -8,12 +8,15 @@ body:
       value: |
         ## 使用说明
 
-        用这个模板发布一个目标明确、可以被认领并按截止时间交付的任务。
-        交付物请写成可以逐项验收的清单，预估天数和 DDL 填实际值。
+        用这个模板发布一个目标明确、可以被认领并接受复核的任务。
+        发布时只填写预估天数，不填写截止时间；截止时间会在认领确认后自动生成。
 
         流程：执行人评论 `/assign` 认领 → 发布者回复 `/confirm` 确认 →
+        系统按预估工作日生成 DDL 并启动提醒 →
         完成后执行人评论 `/complete` 发起复核 → 3 位不同成员分别评论 `LGTM`
-        后自动关闭。复核意见可在 `LGTM` 后附具体修改建议。截止时间前 12 小时会自动提醒执行人。
+        后自动关闭。复核意见可在 `LGTM` 后附具体修改建议。DDL 前 12 小时会自动提醒执行人。
+
+        工作日暂按周一至周五计算。
 
   - type: dropdown
     id: module
@@ -73,17 +76,8 @@ body:
     id: estimated_days
     attributes:
       label: 预估天数
-      description: 预计需要几天完成，填大于 0 的数字（自然日），可用小数；任务完成积分按此值计算。
+      description: 预计需要几个工作日完成，填大于 0 的数字，可用小数；确认认领时向上取整为工作日并生成 DDL，任务完成积分仍按此值计算。
       placeholder: "3"
-    validations:
-      required: true
-
-  - type: input
-    id: ddl
-    attributes:
-      label: 截止时间（DDL）
-      description: 精确到分钟，不用写时区；CI 统一按北京时间（UTC+8）解释。
-      placeholder: "2026-11-30 23:59"
     validations:
       required: true
 

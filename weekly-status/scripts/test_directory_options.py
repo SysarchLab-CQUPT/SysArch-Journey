@@ -10,6 +10,13 @@ import generate_report as report
 
 
 class ModuleOptionsTest(unittest.TestCase):
+    def test_task_form_collects_estimate_but_not_deadline(self):
+        root = Path(__file__).resolve().parents[2]
+        form = (root / ".github/ISSUE_TEMPLATE/task_request.yml").read_text(encoding="utf-8")
+        self.assertIn("id: estimated_days", form)
+        self.assertNotIn("id: ddl", form)
+        self.assertNotIn("label: 截止时间（DDL）", form)
+
     def test_form_options_match_chapters(self):
         root = Path(__file__).resolve().parents[2]
         form = (root / ".github/ISSUE_TEMPLATE/task_request.yml").read_text(encoding="utf-8")

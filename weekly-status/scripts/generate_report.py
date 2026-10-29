@@ -20,6 +20,7 @@ BEIJING = ZoneInfo("Asia/Shanghai")
 BOT_LOGIN = "github-actions[bot]"
 ASSIGNMENT_MARKER = re.compile(r"<!--\s*task-assignment:(pending|resolved|failed) claimant=([A-Za-z0-9-]+)\s*-->")
 REVIEW_MARKER = re.compile(r"<!--\s*task-review:(pending|resolved) executor=([A-Za-z0-9-]+)\s*-->")
+DEADLINE_MARKER = re.compile(r"<!--\s*task-deadline:(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\s*-->")
 DDL = re.compile(r"^(\d{4})-(\d{2})-(\d{2}) ((?:[01]\d|2[0-3]):[0-5]\d|24:00)$")
 LGTM_POINTS = 0.2
 LGTM_SUGGESTION_POINTS = 0.5
@@ -30,7 +31,7 @@ MIN_SUGGESTION_CHARACTERS = 8
 MODULE_SECTION = "所属模块"
 # 不属于任何一章、但同样可以作为任务归属的选项，需与 .github 的 Issue 表单保持一致。
 EXTRA_MODULES = ("配套代码与实验环境", "排版、图表与校对", "其他（请在补充信息中说明）")
-TEMPLATE_FIELDS = (MODULE_SECTION, "任务背景与目标", "交付清单", "任务难度", "预估天数", "截止时间（DDL）")
+TEMPLATE_FIELDS = (MODULE_SECTION, "任务背景与目标", "交付清单", "任务难度", "预估天数")
 
 
 class GitHubClient:
@@ -156,6 +157,30 @@ def marker(comment, pattern):
 
 def sort_comments(comments):
     return sorted(comments, key=lambda item: (item.get("created_at", ""), item.get("id", 0)))
+
+
+def confirmed_deadline(comments):
+    """Return the latest bot-recorded deadline and its display value."""
+    for comment in reversed(sort_comments(comments)):
+        if comment.get("user", {}).get("login", "").lower() != BOT_LOGIN:
+            continue
+        match = DEADLINE_MARKER.search(comment.get("body") or "")
+        if not match:
+            continue
+        value = match.group(1)
+        deadline = parse_ddl(value)
+        if deadline:
+            return deadline, value
+    return None, None
+
+
+def issue_deadline(issue, comments=None):
+    """Prefer the deadline recorded at assignment confirmation; fall back for legacy tasks."""
+    deadline, value = confirmed_deadline(comments or [])
+    if deadline:
+        return deadline, value
+    value = issue_section(issue.get("body") or "", "截止时间（DDL）")
+    return parse_ddl(value), value
 
 
 def assignment_confirmed(comment, match):
@@ -328,7 +353,7 @@ def markdown_cell(value):
     return str(value).replace("|", "\\|").replace("\n", " ").strip() or "-"
 
 
-def week_reasons(issue, start, end):
+def week_reasons(issue, start, end, comments=None):
     if not is_task(issue):
         return []
     reasons = []
@@ -336,7 +361,7 @@ def week_reasons(issue, start, end):
         reasons.append("本周新增")
     if issue.get("state") == "closed" and issue.get("closed_at") and in_week(issue["closed_at"], start, end):
         reasons.append("本周交付")
-    deadline = parse_ddl(issue_section(issue.get("body") or "", "截止时间（DDL）"))
+    deadline, _ = issue_deadline(issue, comments)
     if deadline and start <= deadline < end:
         reasons.append("本周到期")
     return reasons
@@ -655,18 +680,17 @@ def build_report(issues, comments_by_issue, start, end, repo="owner/repo", modul
     person_tasks = defaultdict(list)
     seen = set()
     for issue in issues:
-        reasons = week_reasons(issue, start, end)
+        comments = comments_by_issue.get(issue.get("number"), [])
+        reasons = week_reasons(issue, start, end, comments)
         if not reasons or issue["number"] in seen:
             continue
         seen.add(issue["number"])
-        comments = comments_by_issue.get(issue.get("number"), [])
         events, _, _, lgtm_count = analyze_comments(comments, start, end)
         if issue.get("created_at") and in_week(issue["created_at"], start, end):
             creator = (issue.get("user") or {}).get("login")
             if creator:
                 events.append(("创建", creator))
-        ddl = issue_section(issue.get("body") or "", "截止时间（DDL）")
-        deadline = parse_ddl(ddl)
+        deadline, ddl = issue_deadline(issue, comments)
         due_open = "本周到期" in reasons and issue.get("state") == "open"
         historical_overdue = bool(issue.get("state") == "open" and deadline and deadline < now and
                                   "本周到期" not in reasons)
@@ -780,8 +804,6 @@ def main(argv=None):
     client = GitHubClient(token)
     all_issues = client.get_paginated("/repos/%s/issues" % args.repo, {"state": "all"})
     all_issues = list({issue["number"]: issue for issue in all_issues}.values())
-    # DDL is a body field, so updated-since filtering would miss old tasks due this week.
-    issues = [issue for issue in all_issues if week_reasons(issue, start, end)]
     comment_issues = {
         issue["number"] for issue in all_issues
         if is_task(issue) and issue.get("comments") != 0
@@ -791,6 +813,11 @@ def main(argv=None):
         if issue["number"] in comment_issues and issue.get("comments") != 0:
             comments_by_issue[issue["number"]] = client.get_paginated(
                 "/repos/%s/issues/%s/comments" % (args.repo, issue["number"]))
+    # New tasks store the confirmed DDL in a bot comment rather than the body.
+    issues = [
+        issue for issue in all_issues
+        if week_reasons(issue, start, end, comments_by_issue.get(issue["number"], []))
+    ]
     report = build_report(issues, comments_by_issue, start, end, repo=args.repo)
     score_report = build_score_report(all_issues, comments_by_issue, start, end, repo=args.repo)
     output = Path(args.output_dir) / (week_start.isoformat() + ".md")

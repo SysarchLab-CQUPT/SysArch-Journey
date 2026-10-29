@@ -25,6 +25,7 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const reminderWindow = 12 * 60 * 60 * 1000;
+            const deadlinePattern = /<!--\s*task-deadline:(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\s*-->/;
             const ddlPattern = /^(\d{4})-(\d{2})-(\d{2}) ((?:[01]\d|2[0-3]):[0-5]\d|24:00)$/;
             const issues = await github.paginate(github.rest.issues.listForRepo, {
               owner,
@@ -40,6 +41,23 @@ jobs:
               return match?.[1].trim() || '';
             }
 
+            function confirmedDeadline(comments) {
+              const ordered = [...comments].sort((left, right) =>
+                (Date.parse(left.created_at) - Date.parse(right.created_at)) ||
+                ((left.id || 0) - (right.id || 0))
+              );
+              for (const comment of ordered.reverse()) {
+                if (comment.user?.login !== 'github-actions[bot]') {
+                  continue;
+                }
+                const match = (comment.body || '').match(deadlinePattern);
+                if (match) {
+                  return match[1];
+                }
+              }
+              return null;
+            }
+
             for (const issue of issues) {
               if (
                 issue.pull_request ||
@@ -49,7 +67,16 @@ jobs:
                 continue;
               }
 
-              const ddl = ddlSection(issue.body);
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner,
+                repo,
+                issue_number: issue.number,
+                per_page: 100
+              });
+              const ddl = confirmedDeadline(comments) || ddlSection(issue.body);
+              if (!ddl) {
+                continue;
+              }
               const match = ddl.match(ddlPattern);
               if (!match) {
                 core.warning(`Skip #${issue.number}: invalid DDL format`);
@@ -73,12 +100,6 @@ jobs:
               }
 
               const marker = `<!-- ddl-reminder:${ddl.replace(' ', 'T')}+08:00 -->`;
-              const comments = await github.paginate(github.rest.issues.listComments, {
-                owner,
-                repo,
-                issue_number: issue.number,
-                per_page: 100
-              });
               if (comments.some(comment => comment.body?.trim().toLowerCase() === '/complete')) {
                 continue;
               }

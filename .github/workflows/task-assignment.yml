@@ -25,10 +25,13 @@ jobs:
         with:
           script: |
             const issue = context.payload.issue;
-            const command = context.payload.comment.body.trim().toLowerCase();
-            if (!['/assign', '/confirm'].includes(command) || issue.pull_request) {
+            const rawCommand = context.payload.comment.body.trim();
+            const commandMatch = rawCommand.match(/^\/(assign|confirm)(?:\s+(.+))?$/i);
+            if (!commandMatch || issue.pull_request) {
               return;
             }
+            const command = `/${commandMatch[1].toLowerCase()}`;
+            const argument = (commandMatch[2] || '').trim();
 
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -45,6 +48,82 @@ jobs:
                 body
               });
             }
+
+            const deadlinePattern = /<!--\s*task-deadline:(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\s*-->/;
+            const ddlPattern = /^(\d{4})-(\d{2})-(\d{2}) ((?:[01]\d|2[0-3]):[0-5]\d|24:00)$/;
+            const beijingDate = value => {
+              const parts = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Shanghai',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+              }).formatToParts(value);
+              const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+              return `${values.year}-${values.month}-${values.day}`;
+            };
+            const validDeadline = value => {
+              const match = (value || '').match(ddlPattern);
+              if (!match) {
+                return false;
+              }
+              const [, year, month, day, hm] = match;
+              const maxDay = new Date(Date.UTC(Number(year), Number(month), 0)).getUTCDate();
+              return Number(month) >= 1 && Number(month) <= 12 &&
+                Number(day) >= 1 && Number(day) <= maxDay;
+            };
+            const addBusinessDays = (value, count) => {
+              const match = value.match(ddlPattern);
+              if (!match || !Number.isInteger(count) || count <= 0) {
+                return null;
+              }
+              const [, year, month, day, hm] = match;
+              const cursor = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), 12));
+              let remaining = count;
+              while (remaining > 0) {
+                cursor.setUTCDate(cursor.getUTCDate() + 1);
+                if (cursor.getUTCDay() !== 0 && cursor.getUTCDay() !== 6) {
+                  remaining -= 1;
+                }
+              }
+              const resultDate = [
+                cursor.getUTCFullYear(),
+                String(cursor.getUTCMonth() + 1).padStart(2, '0'),
+                String(cursor.getUTCDate()).padStart(2, '0')
+              ].join('-');
+              return `${resultDate} ${hm}`;
+            };
+            const section = label => {
+              const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const match = (issue.body || '').match(
+                new RegExp(`(?:^|\\n)### ${escaped}\\r?\\n([\\s\\S]*?)(?=\\r?\\n### |$)`)
+              );
+              return match?.[1].trim() || '';
+            };
+            const latestCommentDeadline = comments => {
+              const ordered = [...comments].sort((left, right) =>
+                (Date.parse(left.created_at) - Date.parse(right.created_at)) ||
+                ((left.id || 0) - (right.id || 0))
+              );
+              for (const comment of ordered.reverse()) {
+                if (comment.user?.login !== 'github-actions[bot]') {
+                  continue;
+                }
+                const marker = (comment.body || '').match(deadlinePattern);
+                if (marker && validDeadline(marker[1])) {
+                  return marker[1];
+                }
+              }
+              return null;
+            };
+            const currentDeadline = () => {
+              const marked = latestCommentDeadline(comments);
+              if (marked) {
+                return marked;
+              }
+              const legacy = section('截止时间（DDL）');
+              return validDeadline(legacy) ? legacy : null;
+            };
+            const deadlineComment = ddl => `<!-- task-deadline:${ddl} -->`;
 
             if (!/^\[TASK\]\s+\S/.test(issue.title)) {
               await reply('认领命令只适用于标题以 `[TASK]` 开头的任务 Issue。');
@@ -65,6 +144,10 @@ jobs:
             const assignees = issue.assignees.map(assignee => assignee.login);
 
             if (command === '/assign') {
+              if (argument) {
+                await reply('认领命令不需要参数，请直接评论 `/assign`。');
+                return;
+              }
               if (assignees.length) {
                 await reply(`该任务已由 ${assignees.map(login => `@${login}`).join('、')} 认领。`);
                 return;
@@ -83,6 +166,10 @@ jobs:
               await reply(`只有 Issue 发布者 @${issue.user.login} 可以使用 \`/confirm\` 确认认领。`);
               return;
             }
+            if (argument) {
+              await reply('确认认领不需要参数，请直接评论 `/confirm`；DDL 将按预估工作日自动生成。');
+              return;
+            }
             if (!pendingClaimant) {
               await reply('当前没有等待确认的认领请求。');
               return;
@@ -94,6 +181,29 @@ jobs:
               await reply(`${failedMarker}\n认领未完成：该任务已经分配给 ${assignees.map(login => `@${login}`).join('、')}。`);
               return;
             }
+
+              let ddl = currentDeadline();
+              let deadlineNote = '';
+              if (!ddl) {
+                const estimate = Number(section('预估天数'));
+                if (!Number.isFinite(estimate) || estimate <= 0) {
+                  await reply(`${failedMarker}\n无法确认认领：“预估天数”必须是大于 0 的数字。请发布者先修正 Issue。`);
+                  return;
+                }
+                const businessDays = Math.ceil(estimate);
+                const today = beijingDate(new Date());
+                ddl = addBusinessDays(`${today} 23:59`, businessDays);
+                if (!ddl) {
+                  await reply(`${failedMarker}\n无法根据“预估天数”生成 DDL，请检查日期配置后重试。`);
+                  return;
+                }
+                deadlineNote =
+                  `任务 DDL 已按预估 **${estimate} 天**设置为 **${ddl}**（北京时间 UTC+8）。` +
+                  ` 生成规则：从确认日之后的第一个工作日开始，按周一至周五累计 ${businessDays} 个工作日，` +
+                  `小数向上取整。`;
+              } else {
+                deadlineNote = `任务 DDL 为 **${ddl}**（北京时间 UTC+8）。`;
+              }
 
             if (!assignees.some(login => sameUser(login, pendingClaimant))) {
               try {
@@ -120,7 +230,10 @@ jobs:
               return;
             }
 
-            await reply(`${resolvedMarker}\n认领已确认：@${pendingClaimant} 现为该任务的执行人。`);
+              await reply(
+                `${resolvedMarker}\n${deadlineComment(ddl)}\n` +
+                `认领已确认：@${pendingClaimant} 现为该任务的执行人。\n\n${deadlineNote}`
+              );
 
   remind-publisher:
     name: Remind task publishers

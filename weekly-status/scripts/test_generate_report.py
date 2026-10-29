@@ -68,6 +68,29 @@ class ReportTest(unittest.TestCase):
         self.assertEqual(reasons(5, None), [])
         self.assertEqual(reasons(6, "2026-09-31 12:00"), [])
 
+    def test_confirmed_deadline_marker_overrides_legacy_body(self):
+        task = issue(
+            body=CHAPTER_BODY + "\n### 截止时间（DDL）\n2026-09-01 12:00",
+            assignees=[{"login": "alice"}],
+        )
+        comments = [
+            comment("<!-- task-deadline:2026-09-02 18:00 -->", created_at="2026-09-01T00:00:00Z", id=1),
+            comment("<!-- task-deadline:2026-09-03 18:00 -->", created_at="2026-09-02T00:00:00Z", id=2),
+        ]
+        deadline, label = report.issue_deadline(task, comments)
+        self.assertEqual(deadline, datetime(2026, 9, 3, 18, tzinfo=report.BEIJING))
+        self.assertEqual(label, "2026-09-03 18:00")
+        self.assertEqual(report.week_reasons(task, START, END, comments), ["本周新增", "本周到期"])
+
+    def test_non_bot_deadline_marker_is_ignored(self):
+        task = issue(body=CHAPTER_BODY, assignees=[{"login": "alice"}])
+        comments = [
+            comment("<!-- task-deadline:2026-09-03 18:00 -->", login="alice", user_type="User"),
+        ]
+        deadline, label = report.issue_deadline(task, comments)
+        self.assertIsNone(deadline)
+        self.assertEqual(label, "")
+
     def test_week_reasons_are_the_deduplicated_union_of_all_three_conditions(self):
         body = CHAPTER_BODY + "\n### 截止时间（DDL）\n2026-09-03 12:00"
         task = issue(7, state="closed", body=body, closed_at="2026-09-04T00:00:00Z")
@@ -198,10 +221,10 @@ class ReportTest(unittest.TestCase):
         self.assertIn("| 总计 | 1 | 1 | 0 | 0 | 0 | 0 |", text)
         self.assertEqual(report.current_status(issue(state="closed"), 0), "已交付（已关闭）；LGTM 0/3")
 
-    def test_legacy_task_quality_is_reported(self):
+    def test_task_quality_requires_estimate_but_not_publish_time_ddl(self):
         missing = report.template_quality(issue(body=CHAPTER_BODY))
-        self.assertIn("截止时间（DDL）", missing)
         self.assertIn("预估天数", missing)
+        self.assertNotIn("截止时间（DDL）", missing)
         self.assertNotIn("所属模块", missing)
 
     def test_completion_days_counts_from_assignment_confirmation(self):
