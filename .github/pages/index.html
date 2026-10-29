@@ -460,6 +460,9 @@
       line-height: 1.45;
       text-align: left;
       background: transparent;
+      cursor: pointer;
+      user-select: text;
+      -webkit-user-select: text;
     }
 
     .toc-item-button:hover,
@@ -467,11 +470,26 @@
       background: var(--panel);
     }
 
+    .toc-item-button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+
+    .toc-item-button[aria-disabled="true"] {
+      color: var(--muted);
+      cursor: default;
+    }
+
     .toc-item-button.active {
       color: var(--accent);
       font-weight: 700;
       background: var(--panel);
       box-shadow: inset 3px 0 var(--accent);
+    }
+
+    .toc-panel ::selection {
+      color: var(--brand);
+      background: rgb(43 109 133 / 24%);
     }
 
     .toc-placeholder {
@@ -548,6 +566,41 @@
       width: 100%;
       height: 100%;
       background: var(--paper);
+    }
+
+    .textLayer {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      overflow: hidden;
+      color: transparent;
+      line-height: 1;
+      text-align: initial;
+      -webkit-text-size-adjust: none;
+      -moz-text-size-adjust: none;
+      text-size-adjust: none;
+      forced-color-adjust: none;
+      transform-origin: 0 0;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .textLayer :is(span, br) {
+      position: absolute;
+      color: transparent;
+      white-space: pre;
+      cursor: text;
+      transform-origin: 0 0;
+    }
+
+    .textLayer span.markedContent {
+      top: 0;
+      height: 0;
+    }
+
+    .textLayer ::selection {
+      color: transparent;
+      background: rgb(43 109 133 / 30%);
     }
 
     .pdf-page-number {
@@ -879,6 +932,8 @@
       let releaseObserver = null;
       let zoomFactor = 1;
       let wheelZoomTimer = null;
+      let tocPointerStart = null;
+      let suppressTocClick = false;
       const pageStates = new Map();
       const MAX_RENDERED_PAGES = 4;
       const MAX_CANVAS_PIXELS = 8000000;
@@ -1032,14 +1087,14 @@
         schedulePageRefresh();
       };
 
-      const setActiveTocItem = button => {
+      const setActiveTocItem = control => {
         for (const active of tocList.querySelectorAll('.toc-item-button.active')) {
           active.classList.remove('active');
         }
-        button?.classList.add('active');
+        control?.classList.add('active');
       };
 
-      const goToDestination = async (destinationValue, button) => {
+      const goToDestination = async (destinationValue, control) => {
         try {
           const destination = typeof destinationValue === 'string'
             ? await pdfDocument.getDestination(destinationValue)
@@ -1051,28 +1106,66 @@
           const pageIndex = Number.isInteger(pageReference)
             ? pageReference
             : await pdfDocument.getPageIndex(pageReference);
-          setActiveTocItem(button);
+          setActiveTocItem(control);
           scrollToPage(pageIndex + 1, 'auto');
         } catch (error) {
           console.warn('目录跳转失败', error);
         }
       };
 
+      tocList.addEventListener('pointerdown', event => {
+        if (event.button !== 0 ||
+            !event.target.closest('.toc-item-button')) {
+          return;
+        }
+        tocPointerStart = { x: event.clientX, y: event.clientY };
+      });
+
+      window.addEventListener('pointerup', event => {
+        if (!tocPointerStart) {
+          return;
+        }
+        const distance = Math.hypot(
+          event.clientX - tocPointerStart.x,
+          event.clientY - tocPointerStart.y
+        );
+        tocPointerStart = null;
+        if (distance <= 4) {
+          return;
+        }
+        suppressTocClick = true;
+        setTimeout(() => {
+          suppressTocClick = false;
+        }, 0);
+      }, { capture: true });
+
       const appendOutline = (items, container) => {
         const list = document.createElement('ol');
         list.className = 'toc-list';
         for (const item of items) {
           const entry = document.createElement('li');
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'toc-item-button';
-          button.textContent = item.title || '未命名目录项';
+          const control = document.createElement('div');
+          control.className = 'toc-item-button';
+          control.textContent = item.title || '未命名目录项';
           if (item.dest) {
-            button.addEventListener('click', () => goToDestination(item.dest, button));
+            control.tabIndex = 0;
+            control.setAttribute('role', 'button');
+            control.addEventListener('click', () => {
+              if (suppressTocClick) {
+                return;
+              }
+              goToDestination(item.dest, control);
+            });
+            control.addEventListener('keydown', event => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                goToDestination(item.dest, control);
+              }
+            });
           } else {
-            button.disabled = true;
+            control.setAttribute('aria-disabled', 'true');
           }
-          entry.append(button);
+          entry.append(control);
           if (item.items && item.items.length) {
             appendOutline(item.items, entry);
           }
@@ -1140,7 +1233,9 @@
             container,
             label,
             canvas: null,
+            textLayer: null,
             task: null,
+            textTask: null,
             page: null,
             generation: 0,
             rendering: false
@@ -1160,9 +1255,17 @@
           state.task.cancel();
           state.task = null;
         }
+        if (state.textTask) {
+          state.textTask.cancel();
+          state.textTask = null;
+        }
         if (state.canvas) {
           state.canvas.remove();
           state.canvas = null;
+        }
+        if (state.textLayer) {
+          state.textLayer.remove();
+          state.textLayer = null;
         }
         if (state.page) {
           state.page.cleanup();
@@ -1191,6 +1294,9 @@
         state.generation = generation;
         let page = null;
         let canvas = null;
+        let renderTask = null;
+        let textLayer = null;
+        let textTask = null;
 
         try {
           page = await pdfDocument.getPage(number);
@@ -1221,38 +1327,79 @@
           state.canvas = canvas;
           state.page = page;
           state.container.prepend(canvas);
-          const task = page.render({
+          renderTask = page.render({
             canvasContext: context,
             viewport,
             transform
           });
-          state.task = task;
-          await task.promise;
+          state.task = renderTask;
+
+          textLayer = document.createElement('div');
+          textLayer.className = 'textLayer';
+          textLayer.style.setProperty('--scale-factor', String(viewport.scale));
+          state.textLayer = textLayer;
+          state.container.append(textLayer);
+          textTask = window.pdfjsLib.renderTextLayer({
+            textContentSource: page.streamTextContent({
+              includeMarkedContent: true,
+              disableNormalization: true
+            }),
+            container: textLayer,
+            viewport,
+            textDivs: []
+          });
+          state.textTask = textTask;
+
+          await Promise.all([renderTask.promise, textTask.promise]);
 
           if (state.generation !== generation ||
-              state.task !== task ||
+              state.task !== renderTask ||
+              state.textTask !== textTask ||
               !state.container.isConnected) {
             canvas.remove();
+            textLayer.remove();
             if (state.canvas === canvas) {
               state.canvas = null;
+            }
+            if (state.textLayer === textLayer) {
+              state.textLayer = null;
             }
             if (state.page === page) {
               page.cleanup();
               state.page = null;
             }
+            if (state.task === renderTask) {
+              state.task = null;
+            }
+            if (state.textTask === textTask) {
+              state.textTask = null;
+            }
             return;
           }
           state.task = null;
+          state.textTask = null;
           if (number === 1) {
             status.hidden = true;
           }
         } catch (error) {
-          if (error?.name !== 'RenderingCancelledException') {
+          if (error?.name !== 'RenderingCancelledException' &&
+              error?.name !== 'AbortException') {
             console.error(`第 ${number} 页渲染失败`, error);
           }
+          textTask?.cancel();
+          if (state.task === renderTask) {
+            state.task = null;
+          }
+          if (state.textTask === textTask) {
+            state.textTask = null;
+          }
           if (state.canvas === canvas) {
-            state.canvas.remove();
+            canvas.remove();
             state.canvas = null;
+          }
+          if (state.textLayer === textLayer) {
+            textLayer?.remove();
+            state.textLayer = null;
           }
           if (state.page === page) {
             state.page.cleanup();
