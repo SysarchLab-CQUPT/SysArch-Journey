@@ -1,9 +1,270 @@
 \section{硬件描述语言 Chisel（选学）}
 \label{sec:02-digital-logic-06}
 
-% TODO：撰写本节正文。建议结构：
-%   1) 问题引入与学习目标
-%   2) 原理与机制（配图、公式）
-%   3) 示例或实验步骤
-%   4) 小结与思考题
-本节待撰写。
+在\cref{sec:02-digital-logic-04}中，我们用 Verilog 描述模块、导线和寄存器。假如现在要做一组不同位宽的计数器，或者把同一种运算单元复制成多条通路，能不能像写软件一样，用参数、函数和循环来组织这些电路？Chisel 就是这样一种工具：它把硬件构造能力嵌入 Scala，让我们先写一个\textbf{电路生成器}，再由生成器输出 RTL。
+
+本节介绍 Chisel 的硬件语义、工程配置和验证方法。读完后应能完成三个动作：运行一个 Chisel 工程；解释 Scala 代码对应的组合逻辑与寄存器；生成 RTL 并用测试和波形核对行为。它是选学内容，不要求后续处理器实验改用 Chisel。
+
+\subsection{电路生成与运行}
+
+Chisel 不是把 Scala 程序直接交给 FPGA 执行。一次典型流程分成下面几步\citep{c02-chisel-book,c02-chisel-stage}：
+
+\begin{enumerate}
+  \item \textbf{编译生成器}：Scala 编译器检查源码，Chisel 编译器插件参与处理硬件类型；
+  \item \textbf{展开电路}（elaboration）：在 JVM 上执行生成器，根据参数构造模块、端口、连线和寄存器；
+  \item \textbf{生成 RTL}：经 FIRRTL 中间表示与 CIRCT 工具链，输出 SystemVerilog；
+  \item \textbf{验证与实现}：仿真器验证 RTL 的行为，综合与实现工具将 RTL 映射到目标器件。
+\end{enumerate}
+
+前两步发生在电脑上；电路真正运行时，Scala 的集合、字符串和构造函数并没有被搬进 FPGA。比如生成器里的一个 Scala \texttt{for} 循环可以在展开时复制四个加法器，这不表示硬件要用四个周期依次执行循环。若要复用一个加法器分四拍完成运算，仍然需要显式设计寄存器和控制状态机。
+
+\KeyPoint{换语言，不换硬件思维}{Chisel 能帮助组织和复用电路，但不会免除位宽、时序、复位和资源约束。源码短，不等于电路小；测试通过，也不等于满足 FPGA 的时序约束。}
+
+\subsection{环境与版本}
+
+官方 \texttt{chisel-template} 提供了工程结构和 GCD 测试，可作为了解工具链的示例\citep{c02-chisel-template}。不过，模板中的依赖与测试接口会随版本更新，使用时应先核对构建定义，不能直接混用不同版本的示例代码。
+
+为保持实验环境一致，本节采用一个\textbf{固定版本的教学工程}，使用 \texttt{chiseltest} 完成自检测试，通过 \texttt{WriteVcdAnnotation} 保存波形。依赖组合取自 \texttt{chiseltest} 6.0.0 的发布源码\citep{c02-chiseltest}，见\cref{tab:02-chisel-versions}。这些版本构成本节的兼容基线，不代表最新版本。
+
+\begin{table}[htbp]
+\centering
+\caption{本节教学工程的版本约束}
+\label{tab:02-chisel-versions}
+\begin{tabularx}{\linewidth}{@{}P{32mm}P{27mm}Y@{}}
+\toprule
+组件 & 本节选择 & 作用 \\
+\midrule
+JDK & 17 & 提供 JVM、Java 编译器等运行环境 \\
+sbt & 1.9.9 & 读取构建定义、解析依赖、调用编译和测试 \\
+Scala & 2.13.12 & 编写、编译电路生成器 \\
+Chisel 与插件 & 均为 6.1.0 & 构造硬件；插件同时匹配 Scala 完整版本 \\
+chiseltest & 6.0.0 & 驱动电路、推进时钟、检查结果与导出波形 \\
+ScalaTest & 3.2.17 & 组织测试用例与汇报结果 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+先按操作系统安装 JDK 和 sbt。可以下载 sbt 发行包，解压后将其可执行文件目录加入 \texttt{PATH}；也可以按 sbt 官方安装说明使用包管理器\citep{c02-sbt-guide}。安装后在终端检查：
+
+\begin{lstlisting}[language=bash,numbers=none]
+java -version
+javac -version
+sbt --version
+\end{lstlisting}
+
+应当既能找到 Java 运行环境，也能找到编译器。只出现一个名为 \texttt{java} 的命令，不代表 JDK 已经安装成功。首次运行 sbt 时，它还可能下载启动所需组件；进入工程后则由 \texttt{project/build.properties} 指定 sbt 版本。遇到下载失败，应先分清是网络、代理、证书还是依赖坐标的问题，不要通过反复更换 Chisel 版本碰运气。
+
+\subsection{工程结构}
+
+本节工程放在本章的 \texttt{code/06-chisel/} 中。其核心结构是：
+
+\begin{lstlisting}[language={},numbers=none]
+code/06-chisel/
+  build.sbt
+  project/
+    build.properties
+  src/
+    main/scala/
+      EnabledCounter.scala
+      EmitCounter.scala
+    test/scala/
+      EnabledCounterSpec.scala
+\end{lstlisting}
+
+\texttt{src/main/scala/} 存放设计与生成入口，\texttt{src/test/scala/} 存放测试。\texttt{build.sbt} 定义编译和测试所需的依赖，\texttt{project/build.properties} 固定构建工具版本。设计、构建配置和测试共同构成可复现、可验收的工程。sbt 的目录约定见官方文档\citep{c02-sbt-guide}。
+
+\CodeListing[Scala]{code/06-chisel/build.sbt}{教学工程的构建定义}
+
+这里的 \texttt{libraryDependencies} 是生成器和测试所依赖的软件库，不是要例化的硬件模块。\texttt{\%\%} 会将 Scala 二进制版本加入依赖名称；插件使用 \texttt{CrossVersion.full}，还要匹配 Scala 完整版本。只改其中一个版本，可能导致找不到插件，或在运行时出现方法不匹配。
+
+\subsubsection*{sbt 与 Mill}
+
+sbt 和 Mill 都能管理 Scala 工程；它们不是两种硬件语言，也不是仿真器。某些工程附带了 Mill 的\textbf{启动器脚本}，因此即使没有全局安装 Mill，也能通过 \texttt{./mill} 启动构建，并在首次运行时下载所需组件。
+
+应区分三层东西：终端找到的启动器、启动器选择的 Mill 发行版本，以及 Mill 根据构建定义下载的项目依赖。一些启动器通过 \texttt{.mill-version} 选择版本；不同代际启动器的配置方式可能不同，要以当前仓库内的脚本和说明为准。下载缓存的位置也取决于启动器配置与运行环境，不应写死为某台机器的绝对路径。
+
+\begin{itemize}
+  \item \texttt{mill}：由 shell 在 \texttt{PATH} 中查找；
+  \item \texttt{./mill}：运行当前目录里的同名文件，通常不要求全局安装；
+  \item \texttt{build.sbt}：sbt 的构建定义；
+  \item \texttt{build.mill}：部分 Mill 工程采用的构建定义名；旧工程也可能使用 \texttt{build.sc}。
+\end{itemize}
+
+有了启动器不代表不需要 JVM，也不代表能离线构建。“脚本”和“真正的工具”不是互斥的概念：脚本本身也在执行，只是它常把后续工作交给选定版本的工具。本节只提供 sbt 构建定义，因此实验统一用 sbt；在别的 Mill 工程中运行测试时，要先确认构建定义中的模块名，不能假定命令永远是 \texttt{./mill test}。
+
+\subsection{Scala 与硬件语义}
+
+Chisel 的包名仍然是 \texttt{chisel3}，这不意味着本节使用的是 Chisel 3 版本。初学时最重要的不是背完整 Scala 语法，而是分清\cref{tab:02-chisel-semantics}中的两层语义\citep{c02-chisel-book}。
+
+\begin{table}[H]
+\centering
+\caption{生成器中的 Scala 与被生成的硬件}
+\label{tab:02-chisel-semantics}
+\begin{tabularx}{\linewidth}{@{}P{35mm}YY@{}}
+\toprule
+写法 & 所在层次 & 含义 \\
+\midrule
+\texttt{Int}、\texttt{Boolean} & Scala & 展开时使用的数字与条件 \\
+\texttt{UInt}、\texttt{Bool} & 硬件 & 无符号位向量与单比特信号 \\
+\texttt{4}、\texttt{4.U}、\texttt{4.W} & 不同用途 & Scala 整数、硬件常量、位宽说明 \\
+\texttt{val x = ...} & Scala & 给对象绑定名字；不直接推断寄存器 \\
+\texttt{x := y} & 硬件 & 描述连接或寄存器的下一状态 \\
+\texttt{a === b} & 硬件 & 生成相等比较电路，而非 Scala 的 \texttt{==} \\
+\texttt{if}、\texttt{for} & Scala & 展开时选择结构或重复构造结构 \\
+\texttt{when}、\texttt{Mux} & 硬件 & 用运行中的信号控制更新或选择数据 \\
+\texttt{Wire}、\texttt{RegInit} & 硬件 & 声明连线、带复位初值的寄存器 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+例如 \texttt{width: Int} 决定生成多少位电路，而 \texttt{enable: Bool} 在电路运行中决定这一拍是否计数。\texttt{val count = RegInit(...)} 中，\texttt{val} 不妨碍寄存器变化：不变的是 Scala 名字所指向的对象，变化的是硬件寄存器里存的位。
+
+还要留意两类容易漏掉的细节：
+
+\begin{itemize}
+  \item \textbf{位宽决定算术行为。} 对 \texttt{UInt}，普通加法 \texttt{+} 不额外保留进位位；\texttt{+\&} 扩展结果以保留进位。结果接入较窄目标时仍会截断；要保留进位，运算与接收端的位宽都必须合适。
+  \item \textbf{条件未命中的含义取决于目标。} 寄存器在没有更新的分支保持原值；组合输出则应有完整赋值。用 \texttt{when} 写组合逻辑时，不能把漏赋值当作“自动保持”，通常要先给默认值，再在分支中覆盖。
+\end{itemize}
+
+\subsection{参数化计数器实验}
+\label{sec:02-chisel-counter}
+
+我们不直接从完整 CPU 入手，而是做一个能逐拍验收的小模块。设位宽为 $w$，当前状态为 $q$，它在时钟上升沿满足：
+
+\begin{equation}
+q_{\mathrm{next}} =
+\begin{cases}
+0, & \text{复位有效},\\
+(q+1)\bmod 2^w, & \text{未复位且使能有效},\\
+q, & \text{其他情况}.
+\end{cases}
+\label{eq:02-chisel-counter}
+\end{equation}
+
+接口只有一个使能输入和一个计数输出；\texttt{Module} 提供隐式时钟与复位。实现如下：
+
+\Needspace{24\baselineskip}
+\CodeListing[Scala]{code/06-chisel/src/main/scala/EnabledCounter.scala}{带使能的参数化计数器}
+
+逐句把它翻译回电路：
+
+\begin{enumerate}
+  \item \texttt{require(width > 0)} 检查生成参数；它不是一个运行在 FPGA 上的检查器。
+  \item \texttt{IO(new Bundle \{...\})} 定义一组端口，\texttt{UInt(width.W)} 明确输出位宽。
+  \item \texttt{withReset(reset.asBool)} 为其中的寄存器明确选择同步布尔复位；\texttt{RegInit} 指定复位值为零，而不是保证上电后无需复位就为零。
+  \item \texttt{when(io.enable)} 用硬件使能控制更新；未使能时，寄存器保持原值。
+  \item \texttt{count + 1.U} 接回 $w$ 位寄存器，计数到全一后回零；\texttt{io.value := count} 把当前状态连到输出。
+\end{enumerate}
+
+位宽为 4 时，连续使能应经过 $0,1,\ldots,15,0$。复位和使能同时有效时，复位优先。注意，同步复位必须经过时钟沿才能改变寄存器；这与前文 Verilog 示例中常见的异步低有效复位并不相同，接入其他模块时不能只看名字相似就直接连线。
+
+\subsubsection*{准备实验工程}
+
+在教材仓库根目录执行下面的命令，将教学源码复制到独立实验工作目录。这样 sbt 的缓存、生成 RTL 和仿真产物都留在仓库的 \texttt{build/} 下，不污染正文源码。首次操作前确认目标目录尚不存在；重复实验时直接进入已有目录。
+
+\begin{lstlisting}[language=bash,numbers=none]
+mkdir -p build
+cp -R chapters/02-digital-logic/code/06-chisel build/chisel-lab
+cd build/chisel-lab
+sbt compile
+\end{lstlisting}
+
+\texttt{compile} 通过，只说明生成器能够编译，还没有证明生成的电路行为正确。此时可以检查实际解析的 Scala 版本：
+
+\begin{lstlisting}[language=bash,numbers=none]
+sbt 'show scalaVersion'
+\end{lstlisting}
+
+\subsubsection*{生成 SystemVerilog}
+
+生成 RTL 时，需要实例化顶层模块并指定输出目录。本节采用 Chisel 6.1.0 的 \texttt{circt.stage.ChiselStage.emitSystemVerilogFile}\citep{c02-chisel-stage}：
+
+\CodeListing[Scala]{code/06-chisel/src/main/scala/EmitCounter.scala}{4 位计数器的生成入口}
+
+在刚才的实验工作目录运行：
+
+\begin{lstlisting}[language=bash,numbers=none]
+sbt 'runMain EmitCounter --target-dir generated'
+\end{lstlisting}
+
+生成入口接收的 \texttt{args} 来自 \texttt{runMain} 后的命令行参数。预期可以在 \texttt{generated/} 中找到 \texttt{EnabledCounter.sv}，绝对位置位于教材仓库的 \texttt{build/chisel-lab/} 下。生成 RTL 使用 CIRCT 的 \texttt{firtool}；若自动解析失败，应按该 Chisel 版本的错误提示配置匹配的工具，而不是随意换用另一版本的二进制。
+
+打开生成文件，核对三个问题：输出是否为 4 位；是否有时钟控制的状态寄存器；复位、使能和回绕逻辑是否对应\cref{eq:02-chisel-counter}。工具可能改写内部信号名或化简表达式，不要求逐字匹配某份手写 Verilog。生成的是 \texttt{.sv}，在 Vivado 中添加时应按 SystemVerilog 源文件处理；后续仍要做约束、综合、实现和时序检查。
+
+\subsubsection*{自检测试}
+
+自检测试通过输入激励和断言判断电路是否符合预期。测试不仅要覆盖正常计数，还应检查复位、暂停和回绕等边界行为。下面使用三种参数，分别检查 1 位、4 位和 8 位计数器：
+
+\CodeListing[Scala]{code/06-chisel/src/test/scala/EnabledCounterSpec.scala}{计数器的自检测试}
+
+测试中的 \texttt{poke} 驱动输入，\texttt{clock.step()} 推进时钟，\texttt{expect} 将实际输出与预期值比较。\texttt{model} 是运行在电脑上的 Scala 参考模型，不是另一份要综合的计数器。每次更新模型后，都要在对应时钟沿之后检查输出；如果把检查放到时钟沿之前，比较的还是旧状态。
+
+\begin{lstlisting}[language=bash,numbers=none]
+sbt 'testOnly EnabledCounterSpec'
+sbt test
+\end{lstlisting}
+
+本工程定义三个参数化用例。验收时既要看到成功汇总，也要确认确实执行了三个测试，不能把“零个测试、没有失败”当成通过。代码覆盖了每种位宽的一次完整回绕、周期性暂停，以及使能有效时的中途复位。
+
+\subsubsection*{波形分析}
+
+测试中的 \texttt{withAnnotations(Seq(WriteVcdAnnotation))} 用于启用 VCD 波形导出\citep{c02-chiseltest}。测试结束后，在实验目录查找文件：
+
+\begin{lstlisting}[language=bash,numbers=none]
+find test_run_dir -name '*.vcd'
+\end{lstlisting}
+
+用 GTKWave 等波形查看器打开实际找到的文件，加入时钟、复位、使能和计数输出。具体层次名、文件名由后端决定，不要假定所有版本都叫 \texttt{wave.vcd}。本工程使用该版 \texttt{chiseltest} 的默认 Treadle 后端；若改成 Verilator，需要另外准备对应模拟器与 C++ 构建工具。
+
+以 4 位计数器为例，波形应能读出\cref{tab:02-chisel-wave}的关系。表中每一行是一类观测点，不是完整激励序列；复位和使能在上升沿前已经稳定。
+
+\begin{table}[htbp]
+\centering
+\caption{4 位计数器在时钟上升沿前后的预期关系}
+\label{tab:02-chisel-wave}
+\begin{tabularx}{\linewidth}{@{}P{20mm}P{20mm}P{26mm}P{26mm}Y@{}}
+\toprule
+复位 & 使能 & 沿前计数 & 沿后计数 & 检查点 \\
+\midrule
+1 & 任意 & 任意 & 0 & 复位优先 \\
+0 & 0 & 5 & 5 & 暂停时保持 \\
+0 & 1 & 5 & 6 & 正常计数 \\
+0 & 1 & 15 & 0 & 定宽回绕 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+波形用于解释出错发生在哪一拍，自检断言用于自动判断结果。两者互补：只有波形没有断言，容易靠目测漏掉边界；只有成功日志而不理解波形，也可能把错误的激励时序写成固定套路。
+
+\subsection{常见问题与验收清单}
+
+\begin{itemize}
+  \item \textbf{命令找不到。} 先检查 JDK、sbt 和 \texttt{PATH}；若用 \texttt{./mill}，则检查当前目录、执行权限和启动器文件，而不是立刻改源码。
+  \item \textbf{首次构建长时间等待。} 区分工具发行包、Scala/Chisel 依赖和本地编译三个阶段，查看日志中的下载地址与错误。不要把首次下载时间当作电路仿真耗时。
+  \item \textbf{报插件或方法不匹配。} 对照本节版本表，检查 Chisel 库、插件、Scala 与测试库是否来自同一兼容组合；不要将当前模板构建定义覆盖到本节工程中。
+  \item \textbf{Scala 能编译，硬件却不对。} 检查是否用 Scala 条件替代了硬件条件、误用 \texttt{==}，或把展开时的循环当作跨周期操作。
+  \item \textbf{计数器一直未知或差一拍。} 检查是否施加了有效复位、是否推进了时钟，以及期望值对应的是沿前还是沿后状态。
+  \item \textbf{没有波形文件。} 检查是否实际执行测试、是否带有波形注解，再从测试工作目录查找；不要到 RTL 生成目录寻找测试波形。
+\end{itemize}
+
+实验交付不只是一个“成功”截图，应包含以下可复核的产物：
+
+\begin{enumerate}
+  \item 固定版本的构建定义、设计、生成入口和测试源码，以及实际使用的 JDK 版本记录；
+  \item 一份生成的 4 位计数器 SystemVerilog，以及三个测试均执行通过的日志；
+  \item 一份 VCD 和标注了复位、暂停、回绕位置的波形截图；
+  \item 一段对照说明：指出 Scala 参数、硬件寄存器和参考模型各自在哪个阶段起作用。
+\end{enumerate}
+
+\subsection{小结与思考题}
+
+Chisel 的价值不在于替换 Verilog 的关键字，而在于用软件语言组织硬件生成过程。本节通过参数化计数器，介绍了“构建定义 $\rightarrow$ 展开电路 $\rightarrow$ 生成 RTL $\rightarrow$ 自检与波形”的完整流程。后续无论选择哪种 HDL，仍然要能解释每个状态何时变化、每条数据有多少位。
+
+\begin{enumerate}
+  \item 将位宽从 4 改为 8，哪些变化发生在展开阶段，哪些行为发生在时钟运行阶段？生成 8 位 RTL 时，还要改哪个入口？
+  \item 如果希望计数到 9 就回零，而不是自然溢出，应该用 Scala \texttt{if} 还是 Chisel \texttt{when}？请补充对 9 到 0 边界的断言。
+  \item 给计数器增加同步清零输入，约定优先级为“复位、清零、使能”。请先写状态转移规则，再修改设计和测试。
+  \item 若要同时生成四个独立计数器，Scala 循环能做什么？若要求四路分时共用一个加法器，还需要哪些状态与选择逻辑？
+\end{enumerate}
+
+继续学习时，可阅读 Martin Schoeberl 的《Digital Design with Chisel》及其配套 \texttt{chisel-examples}、\texttt{chisel-lab} 仓库\citep{c02-chisel-book}。这些资源会独立更新，使用其中的实验前应先阅读各自构建定义，不要默认它们与本节固定版本相同。
