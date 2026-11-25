@@ -20,8 +20,6 @@ BEIJING = ZoneInfo("Asia/Shanghai")
 BOT_LOGIN = "github-actions[bot]"
 ASSIGNMENT_MARKER = re.compile(r"<!--\s*task-assignment:(pending|resolved|failed) claimant=([A-Za-z0-9-]+)\s*-->")
 REVIEW_MARKER = re.compile(r"<!--\s*task-review:(pending|resolved) executor=([A-Za-z0-9-]+)\s*-->")
-DEADLINE_MARKER = re.compile(r"<!--\s*task-deadline:(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\s*-->")
-DDL = re.compile(r"^(\d{4})-(\d{2})-(\d{2}) ((?:[01]\d|2[0-3]):[0-5]\d|24:00)$")
 LGTM_POINTS = 0.2
 LGTM_SUGGESTION_POINTS = 0.5
 TASK_PUBLISH_POINTS = 0.8
@@ -134,21 +132,6 @@ def resolve_module(value, module_list):
     return (raw or "未分类", None)
 
 
-def parse_ddl(value):
-    match = DDL.match(value)
-    if not match:
-        return None
-    year, month, day, clock = match.groups()
-    try:
-        day_value = date(int(year), int(month), int(day))
-    except ValueError:
-        return None
-    if clock == "24:00":
-        return datetime.combine(day_value + timedelta(days=1), time.min, BEIJING)
-    hour, minute = map(int, clock.split(":"))
-    return datetime.combine(day_value, time(hour, minute), BEIJING)
-
-
 def marker(comment, pattern):
     if comment.get("user", {}).get("login", "").lower() != BOT_LOGIN:
         return None
@@ -157,30 +140,6 @@ def marker(comment, pattern):
 
 def sort_comments(comments):
     return sorted(comments, key=lambda item: (item.get("created_at", ""), item.get("id", 0)))
-
-
-def confirmed_deadline(comments):
-    """Return the latest bot-recorded deadline and its display value."""
-    for comment in reversed(sort_comments(comments)):
-        if comment.get("user", {}).get("login", "").lower() != BOT_LOGIN:
-            continue
-        match = DEADLINE_MARKER.search(comment.get("body") or "")
-        if not match:
-            continue
-        value = match.group(1)
-        deadline = parse_ddl(value)
-        if deadline:
-            return deadline, value
-    return None, None
-
-
-def issue_deadline(issue, comments=None):
-    """Prefer the deadline recorded at assignment confirmation; fall back for legacy tasks."""
-    deadline, value = confirmed_deadline(comments or [])
-    if deadline:
-        return deadline, value
-    value = issue_section(issue.get("body") or "", "截止时间（DDL）")
-    return parse_ddl(value), value
 
 
 def assignment_confirmed(comment, match):
@@ -343,17 +302,17 @@ def template_quality(issue):
     return [field for field in TEMPLATE_FIELDS if not issue_section(body, field)]
 
 
-def current_status(issue, lgtm_count, risk=None):
+def current_status(issue, lgtm_count):
     status = "已交付（已关闭）" if issue.get("state") == "closed" else "未交付（未关闭）"
     status += "；LGTM %d/3" % lgtm_count
-    return status + ("；" + risk if risk else "")
+    return status
 
 
 def markdown_cell(value):
     return str(value).replace("|", "\\|").replace("\n", " ").strip() or "-"
 
 
-def week_reasons(issue, start, end, comments=None):
+def week_reasons(issue, start, end):
     if not is_task(issue):
         return []
     reasons = []
@@ -361,9 +320,6 @@ def week_reasons(issue, start, end, comments=None):
         reasons.append("本周新增")
     if issue.get("state") == "closed" and issue.get("closed_at") and in_week(issue["closed_at"], start, end):
         reasons.append("本周交付")
-    deadline, _ = issue_deadline(issue, comments)
-    if deadline and start <= deadline < end:
-        reasons.append("本周到期")
     return reasons
 
 
@@ -642,6 +598,7 @@ def build_score_report(issues, comments_by_issue, start, end, repo="owner/repo",
         "统计截至北京时间 %s 00:00（不含）。\n\n"
         "积分规则：\n"
         "1. 任务完成积分＝Issue 表单中填写的“预估天数”；多人共同认领时平均分配。"
+        "预估天数仅用于衡量任务量，不代表完成期限或进度要求。"
         "周报中的“完成用时”仍记录实际用时，不用于本项积分。\n"
         "2. 单独评论 `LGTM` 记 %s 天；`LGTM` 后附至少 %d 个文字或数字的修改建议记 %s 天。"
         "同一人对同一任务只取最高档，不重复计分。\n"
@@ -671,8 +628,7 @@ def build_score_report(issues, comments_by_issue, start, end, repo="owner/repo",
     )
 
 
-def build_report(issues, comments_by_issue, start, end, repo="owner/repo", modules=None, now=None):
-    now = now or datetime.now(BEIJING)
+def build_report(issues, comments_by_issue, start, end, repo="owner/repo", modules=None):
     module_list = repo_modules() if modules is None else modules
     total = defaultdict(int)
     people = defaultdict(lambda: defaultdict(int))
@@ -681,7 +637,7 @@ def build_report(issues, comments_by_issue, start, end, repo="owner/repo", modul
     seen = set()
     for issue in issues:
         comments = comments_by_issue.get(issue.get("number"), [])
-        reasons = week_reasons(issue, start, end, comments)
+        reasons = week_reasons(issue, start, end)
         if not reasons or issue["number"] in seen:
             continue
         seen.add(issue["number"])
@@ -690,36 +646,22 @@ def build_report(issues, comments_by_issue, start, end, repo="owner/repo", modul
             creator = (issue.get("user") or {}).get("login")
             if creator:
                 events.append(("创建", creator))
-        deadline, ddl = issue_deadline(issue, comments)
-        due_open = "本周到期" in reasons and issue.get("state") == "open"
-        historical_overdue = bool(issue.get("state") == "open" and deadline and deadline < now and
-                                  "本周到期" not in reasons)
-        risk = "本周到期未完成" if due_open else "历史逾期" if historical_overdue else None
-        status = current_status(issue, lgtm_count, risk)
+        status = current_status(issue, lgtm_count)
         module, module_path = resolve_module(issue_section(issue.get("body") or "", MODULE_SECTION), module_list)
         task = {
             "issue": issue,
             "module": module,
             "module_path": module_path,
             "status": status,
-            "ddl": ddl or "未填写",
             "days": completion_days(issue, comments),
         }
         module_key = (module, module_path)
         module_counts[module_key]["任务数"] += 1
         for reason in reasons:
             module_counts[module_key][reason] += 1
-        if due_open:
-            module_counts[module_key]["本周到期未完成"] += 1
-        if historical_overdue:
-            module_counts[module_key]["历史逾期"] += 1
         total["任务数"] += 1
         for reason in reasons:
             total[reason] += 1
-        if due_open:
-            total["本周到期未完成"] += 1
-        if historical_overdue:
-            total["历史逾期"] += 1
         weekly_delivery = "本周交付" in reasons
         assignees = {user["login"] for user in issue.get("assignees", []) if user.get("login")}
         target_people = assignees or {"未认领"}
@@ -729,17 +671,11 @@ def build_report(issues, comments_by_issue, start, end, repo="owner/repo", modul
                 people[login]["本周交付"] += 1
             if issue.get("state") == "open":
                 people[login]["当前未关闭"] += 1
-            if due_open:
-                people[login]["本周到期未完成"] += 1
-            if historical_overdue:
-                people[login]["历史逾期"] += 1
-                people[login]["未认领风险"] += int(login == "未认领")
     module_rows = []
     for (module, path), counts in sorted(module_counts.items(), key=lambda item: item[0][0].lower()):
         label = "[%s](%s)" % (module, module_url(path, repo)) if path else module
-        module_rows.append("| %s | %d | %d | %d | %d | %d | %d |" % (
-            label, counts["任务数"], counts["本周新增"], counts["本周交付"], counts["本周到期"],
-            counts["本周到期未完成"], counts["历史逾期"]))
+        module_rows.append("| %s | %d | %d | %d |" % (
+            label, counts["任务数"], counts["本周新增"], counts["本周交付"]))
     person_sections = []
     for login in sorted(people, key=str.lower):
         counts = people[login]
@@ -748,19 +684,19 @@ def build_report(issues, comments_by_issue, start, end, repo="owner/repo", modul
         for task in sorted(person_tasks[login], key=lambda item: item["issue"].get("number", 0)):
             issue = task["issue"]
             issue_link = "[#%s](%s)" % (issue.get("number"), issue.get("html_url", ""))
-            rows.append("| %s | %s | %s | %s | %s | %s |" % (
+            rows.append("| %s | %s | %s | %s | %s |" % (
                 issue_link,
                 markdown_cell(re.sub(r"^\[TASK\]\s*", "", issue.get("title", ""))),
                 markdown_cell(task["module"]), markdown_cell(task["status"]),
-                format_days(task["days"]), markdown_cell(task["ddl"])))
-        person_sections.append("### %s\n\n| 本周交付 | 当前未关闭 | 本周到期未完成 | 历史逾期 | 未认领风险 |\n| --- | --- | --- | --- | --- |\n| %d | %d | %d | %d | %d |\n\n| Issue | 任务 | 所属模块 | 状态 | 完成用时（天） | DDL |\n| --- | --- | --- | --- | --- | --- |\n%s" % (
-            label, counts["本周交付"], counts["当前未关闭"], counts["本周到期未完成"],
-            counts["历史逾期"], counts["未认领风险"], "\n".join(rows)))
-    total_row = "| 总计 | %d | %d | %d | %d | %d | %d |" % (total["任务数"], total["本周新增"], total["本周交付"], total["本周到期"], total["本周到期未完成"], total["历史逾期"])
-    module_table = "| 所属模块 | 任务数 | 本周新增 | 本周交付 | 本周到期 | 本周到期未完成 | 历史逾期 |\n| --- | --- | --- | --- | --- | --- | --- |\n" + total_row + "\n" + "\n".join(module_rows)
+                format_days(task["days"])))
+        person_sections.append("### %s\n\n| 本周交付 | 当前未关闭 |\n| --- | --- |\n| %d | %d |\n\n| Issue | 任务 | 所属模块 | 状态 | 完成用时（天） |\n| --- | --- | --- | --- | --- |\n%s" % (
+            label, counts["本周交付"], counts["当前未关闭"], "\n".join(rows)))
+    total_row = "| 总计 | %d | %d | %d |" % (total["任务数"], total["本周新增"], total["本周交付"])
+    module_table = "| 所属模块 | 任务数 | 本周新增 | 本周交付 |\n| --- | --- | --- | --- |\n" + total_row + "\n" + "\n".join(module_rows)
     header = ("# 周报：%s\n\n"
               "统计区间：北京时间 %s 00:00（含）至 %s 00:00（不含）。\n\n"
-              "完成用时（天）＝ 从认领确认（没有认领记录时从创建）到任务关闭的自然日天数，未关闭的任务显示 `-`。\n" % (
+              "完成用时（天）＝ 从认领确认（没有认领记录时从创建）到任务关闭的自然日天数，未关闭的任务显示 `-`。"
+              "实际用时仅作记录，不用于评价写作进度。任务不设截止时间，请在学习过程中逐步编写。\n" % (
                   start.date().isoformat(), start.date().isoformat(), end.date().isoformat()))
     return header + "\n" + module_table + "\n\n" + "\n\n".join(person_sections)
 
@@ -813,10 +749,9 @@ def main(argv=None):
         if issue["number"] in comment_issues and issue.get("comments") != 0:
             comments_by_issue[issue["number"]] = client.get_paginated(
                 "/repos/%s/issues/%s/comments" % (args.repo, issue["number"]))
-    # New tasks store the confirmed DDL in a bot comment rather than the body.
     issues = [
         issue for issue in all_issues
-        if week_reasons(issue, start, end, comments_by_issue.get(issue["number"], []))
+        if week_reasons(issue, start, end)
     ]
     report = build_report(issues, comments_by_issue, start, end, repo=args.repo)
     score_report = build_score_report(all_issues, comments_by_issue, start, end, repo=args.repo)

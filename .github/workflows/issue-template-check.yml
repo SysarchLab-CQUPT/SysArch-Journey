@@ -63,7 +63,7 @@ jobs:
             const marker = '<!-- task-template-check -->';
             const result = errors.length
               ? `${marker}\n## Issue 模板检测未通过\n\n${errors.map(error => `- ${error}`).join('\n')}\n\n请编辑 Issue 修正以上内容，CI 会自动重新检测。`
-              : `${marker}\n## Issue 模板检测通过\n\n任务标题和必填字段均符合规范。认领确认后将按预估工作日自动生成 DDL。`;
+              : `${marker}\n## Issue 模板检测通过\n\n任务标题和必填字段均符合规范。任务不设截止时间；预估天数仅用于衡量任务量和计算任务完成积分。请在学习过程中逐步编写，不必过分追求进度。`;
 
             const comments = await github.paginate(github.rest.issues.listComments, {
               owner: context.repo.owner,

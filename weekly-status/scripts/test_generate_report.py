@@ -54,21 +54,19 @@ class ReportTest(unittest.TestCase):
         self.assertEqual(report.default_week_start(datetime(2026, 9, 9, 9, tzinfo=report.BEIJING)),
                          date(2026, 8, 31))
 
-    def test_ddl_boundary_2400_and_invalid_values(self):
-        self.assertEqual(report.parse_ddl("2026-09-01 24:00"), datetime(2026, 9, 2, 0, tzinfo=report.BEIJING))
-
+    def test_legacy_deadlines_do_not_select_tasks(self):
         def reasons(number, ddl):
             body = "### 截止时间（DDL）\n" + ddl if ddl is not None else ""
             return report.week_reasons(issue(number=number, created_at="2026-08-01T00:00:00Z", body=body), START, END)
 
-        self.assertEqual(reasons(1, "2026-08-31 00:00"), ["本周到期"])
-        self.assertEqual(reasons(2, "2026-09-06 23:59"), ["本周到期"])
+        self.assertEqual(reasons(1, "2026-08-31 00:00"), [])
+        self.assertEqual(reasons(2, "2026-09-06 23:59"), [])
         self.assertEqual(reasons(3, "2026-09-06 24:00"), [])
-        self.assertEqual(reasons(4, "2026-09-01 24:00"), ["本周到期"])
+        self.assertEqual(reasons(4, "2026-09-01 24:00"), [])
         self.assertEqual(reasons(5, None), [])
         self.assertEqual(reasons(6, "2026-09-31 12:00"), [])
 
-    def test_confirmed_deadline_marker_overrides_legacy_body(self):
+    def test_confirmed_deadline_markers_are_ignored_in_reports(self):
         task = issue(
             body=CHAPTER_BODY + "\n### 截止时间（DDL）\n2026-09-01 12:00",
             assignees=[{"login": "alice"}],
@@ -77,46 +75,38 @@ class ReportTest(unittest.TestCase):
             comment("<!-- task-deadline:2026-09-02 18:00 -->", created_at="2026-09-01T00:00:00Z", id=1),
             comment("<!-- task-deadline:2026-09-03 18:00 -->", created_at="2026-09-02T00:00:00Z", id=2),
         ]
-        deadline, label = report.issue_deadline(task, comments)
-        self.assertEqual(deadline, datetime(2026, 9, 3, 18, tzinfo=report.BEIJING))
-        self.assertEqual(label, "2026-09-03 18:00")
-        self.assertEqual(report.week_reasons(task, START, END, comments), ["本周新增", "本周到期"])
+        text = report.build_report([task], {1: comments}, START, END, modules=[CHAPTER])
+        self.assertNotIn("DDL", text)
+        self.assertNotIn("2026-09-03 18:00", text)
+        self.assertNotIn("到期", text)
+        self.assertEqual(report.week_reasons(task, START, END), ["本周新增"])
 
-    def test_non_bot_deadline_marker_is_ignored(self):
-        task = issue(body=CHAPTER_BODY, assignees=[{"login": "alice"}])
-        comments = [
-            comment("<!-- task-deadline:2026-09-03 18:00 -->", login="alice", user_type="User"),
-        ]
-        deadline, label = report.issue_deadline(task, comments)
-        self.assertIsNone(deadline)
-        self.assertEqual(label, "")
-
-    def test_week_reasons_are_the_deduplicated_union_of_all_three_conditions(self):
+    def test_week_reasons_are_the_deduplicated_union_of_both_conditions(self):
         body = CHAPTER_BODY + "\n### 截止时间（DDL）\n2026-09-03 12:00"
         task = issue(7, state="closed", body=body, closed_at="2026-09-04T00:00:00Z")
-        self.assertEqual(report.week_reasons(task, START, END), ["本周新增", "本周交付", "本周到期"])
+        self.assertEqual(report.week_reasons(task, START, END), ["本周新增", "本周交付"])
 
         text = report.build_report([task, task], {}, START, END, modules=[CHAPTER])
-        self.assertIn("| 总计 | 1 | 1 | 1 | 1 | 0 | 0 |", text)
+        self.assertIn("| 总计 | 1 | 1 | 1 |", text)
         self.assertIn(
-            "| [%s](https://github.com/owner/repo/tree/HEAD/chapters/09-edge-intelligence) | 1 | 1 | 1 | 1 | 0 | 0 |"
+            "| [%s](https://github.com/owner/repo/tree/HEAD/chapters/09-edge-intelligence) | 1 | 1 | 1 |"
             % CHAPTER[0], text)
         self.assertIn("[#7](https://example.test/7)", text)
 
-    def test_person_issue_rows_match_their_six_column_header(self):
+    def test_person_issue_rows_match_their_five_column_header(self):
         body = CHAPTER_BODY + "\n### 截止时间（DDL）\n2026-09-03 18:00"
         task = issue(26, body=body, assignees=[{"login": "alice"}])
         text = report.build_report([task], {}, START, END, modules=[CHAPTER])
-        self.assertIn("| Issue | 任务 | 所属模块 | 状态 | 完成用时（天） | DDL |", text)
+        self.assertIn("| Issue | 任务 | 所属模块 | 状态 | 完成用时（天） |", text)
         lines = text.splitlines()
-        header_index = lines.index("| Issue | 任务 | 所属模块 | 状态 | 完成用时（天） | DDL |")
+        header_index = lines.index("| Issue | 任务 | 所属模块 | 状态 | 完成用时（天） |")
         separator = lines[header_index + 1]
         issue_row = next(line for line in lines[header_index + 2:] if "[#26]" in line)
         column_count = len(lines[header_index].strip("|").split("|"))
         self.assertEqual(len(separator.strip("|").split("|")), column_count)
         self.assertEqual(len(issue_row.strip("|").split("|")), column_count)
 
-    def test_updated_or_commented_tasks_outside_the_three_conditions_are_excluded(self):
+    def test_updated_or_commented_tasks_outside_both_conditions_are_excluded(self):
         old = "2026-08-01T00:00:00Z"
         updated = issue(created_at=old, updated_at="2026-09-02T00:00:00Z")
         commented = issue(number=2, created_at=old)
@@ -218,7 +208,7 @@ class ReportTest(unittest.TestCase):
             comment("LGTM", "dave", user_type="User", id=5),
         ]
         text = report.build_report([task], {1: comments}, START, END)
-        self.assertIn("| 总计 | 1 | 1 | 0 | 0 | 0 | 0 |", text)
+        self.assertIn("| 总计 | 1 | 1 | 0 |", text)
         self.assertEqual(report.current_status(issue(state="closed"), 0), "已交付（已关闭）；LGTM 0/3")
 
     def test_task_quality_requires_estimate_but_not_publish_time_ddl(self):
@@ -425,7 +415,7 @@ class ReportTest(unittest.TestCase):
         ]
         text = report.build_report(tasks, {2: [comment("<!-- task-review:resolved executor=carol -->")]},
                                    START, END, modules=[CHAPTER])
-        self.assertIn("| 总计 | 2 | 2 | 1 | 0 | 0 | 0 |", text)
+        self.assertIn("| 总计 | 2 | 2 | 1 |", text)
         self.assertIn("### @alice", text)
         self.assertIn("### @bob", text)
         self.assertIn("| [#1](https://example.test/1) | Test |", text)
@@ -439,27 +429,31 @@ class ReportTest(unittest.TestCase):
                      "2026-08-30T15:59:59Z", "2026-08-30T16:00:00Z",
                      "2026-09-06T15:59:59Z", "2026-09-06T16:00:00Z"], 1)]
         text = report.build_report(tasks, {}, START, END, modules=[CHAPTER])
-        self.assertIn("| 总计 | 2 | 0 | 2 | 0 | 0 | 0 |", text)
+        self.assertIn("| 总计 | 2 | 0 | 2 |", text)
         self.assertIn("### @alice", text)
 
-    def test_current_unclosed_and_overdue_columns(self):
+    def test_current_unclosed_columns_ignore_legacy_deadlines(self):
         overdue_body = "### 截止时间（DDL）\n2026-09-01 24:00"
         active = issue(body=overdue_body, assignees=[{"login": "alice"}, {"login": "bob"}])
         pending = issue(number=2, assignees=[{"login": "bob"}])
-        text = report.build_report([active, pending], {1: [], 2: []}, START, END,
-                                   now=datetime(2026, 9, 7, tzinfo=report.BEIJING))
-        self.assertIn("| 0 | 1 | 1 | 0 | 0 |", text)
-        self.assertIn("| 总计 | 2 | 2 | 0 | 1 | 1 | 0 |", text)
+        text = report.build_report([active, pending], {1: [], 2: []}, START, END)
+        self.assertIn("| 本周交付 | 当前未关闭 |", text)
+        self.assertIn("| 0 | 1 |", text)
+        self.assertIn("| 0 | 2 |", text)
+        self.assertIn("| 总计 | 2 | 2 | 0 |", text)
+        self.assertNotIn("逾期", text)
+        self.assertNotIn("到期", text)
+        self.assertNotIn("未认领风险", text)
         self.assertIn("### @alice", text)
         self.assertIn("### @bob", text)
 
-    def test_report_starts_with_title_and_seven_column_module_table(self):
+    def test_report_starts_with_title_and_four_column_module_table(self):
         text = report.build_report([], {}, START, END)
         lines = text.splitlines()
         self.assertEqual(lines[0], "# 周报：2026-08-31")
         header_index = lines.index(
-            "| 所属模块 | 任务数 | 本周新增 | 本周交付 | 本周到期 | 本周到期未完成 | 历史逾期 |")
-        self.assertEqual(len(lines[header_index].strip("|").split("|")), 7)
+            "| 所属模块 | 任务数 | 本周新增 | 本周交付 |")
+        self.assertEqual(len(lines[header_index].strip("|").split("|")), 4)
 
     def test_pull_requests_and_non_tasks_do_not_count(self):
         tasks = [issue(state="closed", pull_request={"url": "https://example.test/pr"}),
